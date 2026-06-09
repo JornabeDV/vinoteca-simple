@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  EMPLOYEE
+}
+
+enum ProductStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  CORRECTION
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(EMPLOYEE)
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  sales         Sale[]
+  inventoryMovements InventoryMovement[]
+
+  @@map("users")
+}
+
+model WineProduct {
+  id            String        @id @default(uuid())
+  name          String
+  winery        String
+  category      String
+  varietal      String
+  vintage       Int?
+  description   String?
+  costPrice     Decimal       @map("cost_price") @db.Decimal(10, 2)
+  salePrice     Decimal       @map("sale_price") @db.Decimal(10, 2)
+  currentStock  Int           @default(0) @map("current_stock")
+  minStock      Int           @default(0) @map("min_stock")
+  image         String?
+  status        ProductStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  saleItems     SaleItem[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([status])
+  @@index([name])
+  @@index([winery])
+  @@index([category])
+  @@map("wine_products")
+}
+
+model InventoryMovement {
+  id            String       @id @default(uuid())
+  productId     String       @map("product_id")
+  userId        String       @map("user_id")
+  quantity      Int
+  type          MovementType
+  notes         String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  product       WineProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+model Sale {
+  id            String      @id @default(uuid())
+  saleNumber    String      @unique @map("sale_number")
+  userId        String      @map("user_id")
+  totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         SaleItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id            String      @id @default(uuid())
+  saleId        String      @map("sale_id")
+  productId     String      @map("product_id")
+  quantity      Int
+  unitPrice     Decimal     @map("unit_price") @db.Decimal(10, 2)
+  totalPrice    Decimal     @map("total_price") @db.Decimal(10, 2)
+
+  sale          Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product       WineProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
