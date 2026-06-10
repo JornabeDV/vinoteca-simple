@@ -7,6 +7,7 @@ import { User, Mail, Shield, Calendar, Store, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ProfileForm } from "./profile-form";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -21,6 +22,16 @@ export default async function ProfilePage() {
     ? await getBusinessById(userData.businessId)
     : null;
 
+  if (!userData) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center h-96">
+          <p className="text-muted-foreground">No se encontró el usuario.</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="space-y-6 max-w-2xl">
@@ -33,6 +44,7 @@ export default async function ProfilePage() {
           </p>
         </div>
 
+        {/* Info general */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="font-heading text-lg flex items-center gap-2">
@@ -132,6 +144,9 @@ export default async function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Formulario editable */}
+        <ProfileForm user={{ id: userData.id, name: userData.name, email: userData.email }} />
       </div>
     </AppShell>
   );

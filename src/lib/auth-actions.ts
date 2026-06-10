@@ -154,6 +154,51 @@ export async function deleteEmployee(userId: string, ownerId: string, businessId
   return { success: true };
 }
 
+export async function updateProfile(userId: string, data: { name: string; email: string }) {
+  const existing = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
+
+  if (existing && existing.id !== userId) {
+    throw new Error("El email ya está en uso por otro usuario");
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      email: data.email,
+    },
+  });
+
+  revalidatePath("/perfil");
+  return { success: true, user };
+}
+
+export async function updatePassword(userId: string, data: { currentPassword: string; newPassword: string }) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user || !user.password) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  const isValid = await bcrypt.compare(data.currentPassword, user.password);
+  if (!isValid) {
+    throw new Error("La contraseña actual es incorrecta");
+  }
+
+  const hashedPassword = await bcrypt.hash(data.newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  return { success: true };
+}
+
 export async function getBusinessById(id: string) {
   const business = await prisma.business.findUnique({
     where: { id },
