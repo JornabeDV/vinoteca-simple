@@ -386,14 +386,15 @@ export function InventoryPage({
       </div>
 
       <Tabs value={activeTab} onValueChange={setTab} className="space-y-6">
-        <TabsList>
+        <TabsList className="w-full max-w-full overflow-x-auto scrollbar-hide">
           <TabsTrigger value="productos" className="gap-2">
             <Package className="h-4 w-4" />
             Productos
           </TabsTrigger>
           <TabsTrigger value="alertas" className="gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Alertas de Stock
+            <span className="sm:hidden">Stock</span>
+            <span className="max-sm:hidden sm:block">Alertas de Stock</span>
             {lowStockProducts.length > 0 && (
               <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1">
                 {lowStockProducts.length}
