@@ -42,7 +42,7 @@ export function LandingNavbar() {
             <div className="lg:hidden">
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2">
+                  <Button variant="ghost" size="icon-lg" className="-ml-2">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>

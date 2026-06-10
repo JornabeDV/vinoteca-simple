@@ -78,8 +78,8 @@ export function Header({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                  <Avatar className="h-9 w-9 border border-border">
+                <Button variant="ghost" size="icon-lg" className="relative rounded-full p-0">
+                  <Avatar className="h-10 w-10 border border-border">
                     <AvatarFallback className="bg-[#7b1f3a] text-xs font-medium text-white">
                       {getInitials(user?.name || user?.email)}
                     </AvatarFallback>

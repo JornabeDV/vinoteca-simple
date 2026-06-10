@@ -129,6 +129,31 @@ export async function createEmployeeByOwner(data: {
   return { success: true, userId: user.id };
 }
 
+export async function deleteEmployee(userId: string, ownerId: string, businessId: string) {
+  const target = await prisma.user.findFirst({
+    where: { id: userId, businessId },
+  });
+
+  if (!target) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  if (target.role === UserRole.OWNER) {
+    throw new Error("No podés eliminar a un propietario");
+  }
+
+  if (target.id === ownerId) {
+    throw new Error("No podés eliminarte a vos mismo");
+  }
+
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  revalidatePath("/usuarios");
+  return { success: true };
+}
+
 export async function getBusinessById(id: string) {
   const business = await prisma.business.findUnique({
     where: { id },

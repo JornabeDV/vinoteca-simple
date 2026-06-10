@@ -214,7 +214,6 @@ export function NewSalePage({ products }: { products: any[] }) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => updateQuantity(item.productId, -1)}
                           disabled={item.quantity <= 1}
                         >
@@ -226,7 +225,6 @@ export function NewSalePage({ products }: { products: any[] }) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => updateQuantity(item.productId, 1)}
                           disabled={item.quantity >= item.availableStock}
                         >
@@ -236,7 +234,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 sm:h-8 sm:w-8 text-destructive"
+                        className="text-destructive"
                         onClick={() => removeFromCart(item.productId)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -280,7 +278,8 @@ export function NewSalePage({ products }: { products: any[] }) {
               </span>
             </div>
             <Button
-              className="w-full h-11 bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+              size="xl"
+              className="w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
               disabled={cart.length === 0 || isSubmitting}
               onClick={handleSubmit}
             >

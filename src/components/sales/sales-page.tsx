@@ -43,7 +43,7 @@ export function SalesPage({ sales }: { sales: any[] }) {
           />
         </div>
         <Link href="/ventas/nueva">
-          <Button className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
+          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
             <Plus className="h-4 w-4" />
             Nueva Venta
           </Button>
@@ -104,8 +104,8 @@ export function SalesPage({ sales }: { sales: any[] }) {
                         <Link href={`/ventas/detalle/${sale.id}`}>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            size="icon"
+                            className="p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>

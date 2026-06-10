@@ -43,6 +43,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductCombobox } from "./product-combobox";
 import { adjustStock } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
@@ -122,7 +123,7 @@ export function InventoryPage({
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger>
-            <Button className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
+            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
               <Plus className="h-4 w-4" />
               Ajustar Stock
             </Button>
@@ -137,23 +138,20 @@ export function InventoryPage({
             <form onSubmit={handleAdjustment} className="space-y-4">
               <div className="space-y-2">
                 <Label>Producto</Label>
-                <Select
+                <ProductCombobox
+                  products={products.filter((p) => p.status === "ACTIVE")}
                   value={selectedProduct}
-                  onValueChange={(v) => setSelectedProduct(v || "")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products
-                      .filter((p) => p.status === "ACTIVE")
-                      .map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} ({product.currentStock} unidades)
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setSelectedProduct}
+                  placeholder="Seleccionar producto..."
+                />
+                {selectedProduct && (
+                  <p className="text-xs text-muted-foreground">
+                    Stock actual:{" "}
+                    <span className="font-medium text-foreground">
+                      {products.find((p) => p.id === selectedProduct)?.currentStock} unidades
+                    </span>
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Tipo de Movimiento</Label>

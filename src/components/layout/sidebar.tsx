@@ -134,7 +134,7 @@ export function MobileSidebar({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger>
-        <Button variant="ghost" size="icon" className="h-10 w-10">
+        <Button variant="ghost" size="icon-lg">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>

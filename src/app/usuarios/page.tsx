@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateEmployeeDialog } from "./create-employee-dialog";
+import { DeleteUserButton } from "./delete-user-button";
 
 export default async function UsersPage() {
   const currentUser = await getCurrentUser();
@@ -32,9 +33,11 @@ export default async function UsersPage() {
     );
   }
 
+  const businessId = currentUser.businessId;
+
   const [users, business] = await Promise.all([
     prisma.user.findMany({
-      where: { businessId: currentUser.businessId },
+      where: { businessId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -44,7 +47,7 @@ export default async function UsersPage() {
         createdAt: true,
       },
     }),
-    getBusinessById(currentUser.businessId),
+    getBusinessById(businessId),
   ]);
 
   return (
@@ -59,7 +62,7 @@ export default async function UsersPage() {
               Gestiona los usuarios de tu vinoteca
             </p>
           </div>
-          <CreateEmployeeDialog businessId={currentUser.businessId} />
+          <CreateEmployeeDialog businessId={businessId} />
         </div>
 
         {business && (
@@ -93,12 +96,13 @@ export default async function UsersPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead>Fecha de Registro</TableHead>
+                    <TableHead className="w-16">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-32 text-center">
+                      <TableCell colSpan={5} className="h-32 text-center">
                         <Users className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
                         <p className="text-sm text-muted-foreground">
                           No hay usuarios registrados
@@ -138,6 +142,16 @@ export default async function UsersPage() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(user.createdAt).toLocaleDateString("es-AR")}
+                        </TableCell>
+                        <TableCell>
+                          {user.role === "EMPLOYEE" && user.id !== currentUser.id && (
+                            <DeleteUserButton
+                              userId={user.id}
+                              userName={user.name || user.email}
+                              ownerId={currentUser.id}
+                              businessId={businessId}
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))

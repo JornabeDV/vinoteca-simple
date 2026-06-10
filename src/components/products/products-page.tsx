@@ -107,7 +107,7 @@ export function ProductsPage({ products }: { products: any[] }) {
           />
         </div>
         <Link href="/productos/nuevo">
-          <Button className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
+          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
             <Plus className="h-4 w-4" />
             Nuevo Producto
           </Button>
@@ -232,8 +232,8 @@ export function ProductsPage({ products }: { products: any[] }) {
                           <DropdownMenuTrigger>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              size="icon"
+                              className="p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <Filter className="h-4 w-4" />
                             </Button>
