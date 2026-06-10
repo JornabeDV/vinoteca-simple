@@ -41,7 +41,7 @@ export function LandingNavbar() {
             {/* Mobile menu trigger — LEFT side */}
             <div className="lg:hidden">
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
-                <SheetTrigger asChild>
+                <SheetTrigger>
                   <Button variant="ghost" size="icon" className="h-9 w-9 -ml-2">
                     <Menu className="h-5 w-5" />
                   </Button>
