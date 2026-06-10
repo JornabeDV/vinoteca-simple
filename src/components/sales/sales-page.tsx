@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Eye,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +25,32 @@ import { Pagination } from "@/components/ui/pagination";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { formatPrice } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function SalesPage({ sales }: { sales: any[] }) {
+  const handleExport = () => {
+    const headers = ["numero", "fecha", "usuario", "productos", "total"];
+    const rows = sales.map((s) => [
+      s.saleNumber || "",
+      s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
+      s.user?.name || s.user?.email || "",
+      (s.items?.length || 0).toString(),
+      s.totalAmount?.toString() || "",
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvWithBom = "\ufeff" + csv;
+    const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ventas-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`${sales.length} ventas exportadas`);
+  };
+
   const {
     data: paginatedSales,
     currentPage,
@@ -85,12 +110,23 @@ export function SalesPage({ sales }: { sales: any[] }) {
             className="pl-9 h-10"
           />
         </div>
-        <Link href="/ventas/nueva" data-tour="ventas-nueva">
-          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
-            <Plus className="h-4 w-4" />
-            Nueva Venta
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleExport}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar
           </Button>
-        </Link>
+          <Link href="/ventas/nueva" data-tour="ventas-nueva">
+            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
+              <Plus className="h-4 w-4" />
+              Nueva Venta
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="border-border/50 overflow-hidden">

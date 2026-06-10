@@ -23,7 +23,7 @@ export default async function Home({
 
   return (
     <AppShell>
-      <DashboardPage data={data} chartDays={chartDays} />
+      <DashboardPage data={data} chartDays={chartDays} userRole={user.role} />
     </AppShell>
   );
 }

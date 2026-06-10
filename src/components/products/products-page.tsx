@@ -35,9 +35,10 @@ import { ProductImportButton } from "./product-import-button";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function ProductsPage({ products }: { products: any[] }) {
+export function ProductsPage({ products, userRole }: { products: any[]; userRole?: string }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const isOwner = userRole === "OWNER";
 
   const handleExport = () => {
     const headers = [
@@ -176,24 +177,26 @@ export function ProductsPage({ products }: { products: any[] }) {
             className="pl-9 h-10"
           />
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <ProductImportButton />
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleExport}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
-          <Link href="/productos/nuevo" data-tour="productos-nuevo">
-            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Nuevo Producto
+        {isOwner && (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <ProductImportButton />
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar
             </Button>
-          </Link>
-        </div>
+            <Link href="/productos/nuevo" data-tour="productos-nuevo">
+              <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
+                <Plus className="h-4 w-4" />
+                Nuevo Producto
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       <Card className="border-border/50 overflow-hidden">
@@ -251,13 +254,13 @@ export function ProductsPage({ products }: { products: any[] }) {
                       onSort={handleSort}
                     />
                   </TableHead>
-                  <TableHead className="w-[140px] text-right">Acciones</TableHead>
+                  {isOwner && <TableHead className="w-[140px] text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
+                    <TableCell colSpan={isOwner ? 8 : 7} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Wine className="h-8 w-8 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">
@@ -329,77 +332,79 @@ export function ProductsPage({ products }: { products: any[] }) {
                             {product.status === "ACTIVE" ? "Activo" : "Archivado"}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              onClick={() => router.push(`/productos/editar/${product.id}`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                        {isOwner && (
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => router.push(`/productos/editar/${product.id}`)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
 
-                            {product.status === "ACTIVE" ? (
+                              {product.status === "ACTIVE" ? (
+                                <ConfirmDialog
+                                  title="Archivar producto"
+                                  description={`¿Estás seguro de que querés archivar "${product.name}"? Podés volver a activarlo después.`}
+                                  confirmText="Archivar"
+                                  cancelText="Cancelar"
+                                  variant="default"
+                                  isLoading={isLoading}
+                                  onConfirm={() => handleArchive(product.id)}
+                                  trigger={
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                    >
+                                      <Archive className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                />
+                              ) : (
+                                <ConfirmDialog
+                                  title="Activar producto"
+                                  description={`¿Querés volver a activar "${product.name}"?`}
+                                  confirmText="Activar"
+                                  cancelText="Cancelar"
+                                  variant="default"
+                                  isLoading={isLoading}
+                                  onConfirm={() => handleActivate(product.id)}
+                                  trigger={
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                                    >
+                                      <ArchiveRestore className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                />
+                              )}
+
                               <ConfirmDialog
-                                title="Archivar producto"
-                                description={`¿Estás seguro de que querés archivar "${product.name}"? Podés volver a activarlo después.`}
-                                confirmText="Archivar"
+                                title="Eliminar producto"
+                                description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
+                                confirmText="Eliminar"
                                 cancelText="Cancelar"
-                                variant="default"
+                                variant="destructive"
                                 isLoading={isLoading}
-                                onConfirm={() => handleArchive(product.id)}
+                                onConfirm={() => handleDelete(product.id)}
                                 trigger={
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                   >
-                                    <Archive className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 }
                               />
-                            ) : (
-                              <ConfirmDialog
-                                title="Activar producto"
-                                description={`¿Querés volver a activar "${product.name}"?`}
-                                confirmText="Activar"
-                                cancelText="Cancelar"
-                                variant="default"
-                                isLoading={isLoading}
-                                onConfirm={() => handleActivate(product.id)}
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
-                                  >
-                                    <ArchiveRestore className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                            )}
-
-                            <ConfirmDialog
-                              title="Eliminar producto"
-                              description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
-                              confirmText="Eliminar"
-                              cancelText="Cancelar"
-                              variant="destructive"
-                              isLoading={isLoading}
-                              onConfirm={() => handleDelete(product.id)}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
-                          </div>
-                        </TableCell>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })

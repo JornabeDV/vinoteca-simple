@@ -10,6 +10,12 @@ export default withAuth(
     if (path.startsWith("/usuarios") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/", req.url));
     }
+    if (path.startsWith("/productos/nuevo") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
+    if (path.startsWith("/productos/editar") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
 
     return NextResponse.next();
   },

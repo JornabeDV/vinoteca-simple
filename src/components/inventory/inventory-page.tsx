@@ -9,6 +9,7 @@ import {
   Search,
   History,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,18 +54,78 @@ import { MovementType } from "@prisma/client";
 export function InventoryPage({
   movements,
   products,
+  userRole,
 }: {
   movements: any[];
   products: any[];
+  userRole?: string;
 }) {
+  const isOwner = userRole === "OWNER";
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
+
+  const activeTab = searchParams.get("tab") || "productos";
+  const selectedProductId = searchParams.get("productId") || "";
+
+  const setTab = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`/inventario?${params.toString()}`, { scroll: false });
+  };
+
+  const selectProduct = (productId: string) => {
+    const params = new URLSearchParams();
+    params.set("tab", "historial");
+    params.set("productId", productId);
+    router.push(`/inventario?${params.toString()}`, { scroll: false });
+  };
+
+  const clearProductFilter = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("productId");
+    router.push(`/inventario?${params.toString()}`, { scroll: false });
+  };
+
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("");
   const [movementType, setMovementType] = useState<MovementType>(MovementType.ADJUSTMENT);
   const [notes, setNotes] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleExport = () => {
+    const headers = [
+      "producto",
+      "bodega",
+      "categoria",
+      "varietal",
+      "stock_actual",
+      "stock_minimo",
+      "precio_venta",
+    ];
+    const rows = products.map((p) => [
+      p.name || "",
+      p.brand || "",
+      p.category || "",
+      p.style || "",
+      (p.currentStock ?? "").toString(),
+      (p.minStock ?? "").toString(),
+      p.salePrice?.toString() || "",
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvWithBom = "\ufeff" + csv;
+    const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `inventario-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`${products.length} productos exportados`);
+  };
 
   const lowStockProducts = products.filter(
     (p) => p.status === "ACTIVE" && p.currentStock <= p.minStock
@@ -205,105 +266,109 @@ export function InventoryPage({
             className="pl-9 h-10"
           />
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger data-tour="inventario-ajustar">
-            <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-12 gap-1.5 px-3 sm:h-9 sm:px-2.5 bg-[#7b1f3a] hover:bg-[#5a1530] text-white cursor-pointer">
-              <Plus className="h-4 w-4" />
-              Ajustar Stock
-            </div>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-heading">Ajustar Stock</DialogTitle>
-              <DialogDescription>
-                Registra un movimiento de inventario
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAdjustment} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Producto</Label>
-                <ProductCombobox
-                  products={products.filter((p) => p.status === "ACTIVE")}
-                  value={selectedProduct}
-                  onChange={setSelectedProduct}
-                  placeholder="Seleccionar producto..."
-                />
-                {selectedProduct && (
-                  <p className="text-xs text-muted-foreground">
-                    Stock actual:{" "}
-                    <span className="font-medium text-foreground">
-                      {products.find((p) => p.id === selectedProduct)?.currentStock} unidades
-                    </span>
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de Movimiento</Label>
-                <Select
-                  value={movementType}
-                  onValueChange={(v) => setMovementType((v as MovementType) || MovementType.ADJUSTMENT)}
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {{
-                        [MovementType.PURCHASE]: "Compra (entrada)",
-                        [MovementType.ADJUSTMENT]: "Ajuste (entrada)",
-                        [MovementType.SALE]: "Venta (salida)",
-                        [MovementType.CORRECTION]: "Corrección",
-                      }[movementType]}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={MovementType.PURCHASE}>
-                      Compra (entrada)
-                    </SelectItem>
-                    <SelectItem value={MovementType.ADJUSTMENT}>
-                      Ajuste (entrada)
-                    </SelectItem>
-                    <SelectItem value={MovementType.SALE}>
-                      Venta (salida)
-                    </SelectItem>
-                    <SelectItem value={MovementType.CORRECTION}>
-                      Corrección
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Cantidad</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="Cantidad"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notas</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Observaciones opcionales..."
-                  rows={2}
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  type="submit"
-                  className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Registrando..." : "Registrar Movimiento"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {isOwner && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger data-tour="inventario-ajustar">
+                <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-12 gap-1.5 px-3 sm:h-9 sm:px-2.5 bg-[#7b1f3a] hover:bg-[#5a1530] text-white cursor-pointer">
+                  <Plus className="h-4 w-4" />
+                  Ajustar Stock
+                </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-heading">Ajustar Stock</DialogTitle>
+                  <DialogDescription>
+                    Registra un movimiento de inventario
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAdjustment} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Producto</Label>
+                    <ProductCombobox
+                      products={products.filter((p) => p.status === "ACTIVE")}
+                      value={selectedProduct}
+                      onChange={setSelectedProduct}
+                      placeholder="Seleccionar producto..."
+                    />
+                    {selectedProduct && (
+                      <p className="text-xs text-muted-foreground">
+                        Stock actual:{" "}
+                        <span className="font-medium text-foreground">
+                          {products.find((p) => p.id === selectedProduct)?.currentStock} unidades
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de Movimiento</Label>
+                    <Select
+                      value={movementType}
+                      onValueChange={(v) => setMovementType((v as MovementType) || MovementType.ADJUSTMENT)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue>
+                          {{
+                            [MovementType.PURCHASE]: "Compra (entrada)",
+                            [MovementType.ADJUSTMENT]: "Ajuste (entrada)",
+                            [MovementType.SALE]: "Venta (salida)",
+                            [MovementType.CORRECTION]: "Corrección",
+                          }[movementType]}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MovementType.PURCHASE}>
+                          Compra (entrada)
+                        </SelectItem>
+                        <SelectItem value={MovementType.ADJUSTMENT}>
+                          Ajuste (entrada)
+                        </SelectItem>
+                        <SelectItem value={MovementType.SALE}>
+                          Venta (salida)
+                        </SelectItem>
+                        <SelectItem value={MovementType.CORRECTION}>
+                          Corrección
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cantidad</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="Cantidad"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notas</Label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Observaciones opcionales..."
+                      rows={2}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="submit"
+                      className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Registrando..." : "Registrar Movimiento"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
-      <Tabs defaultValue="productos" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="productos" className="gap-2">
             <Package className="h-4 w-4" />

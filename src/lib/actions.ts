@@ -12,6 +12,12 @@ function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return user as typeof user & { businessId: string };
 }
 
+function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  const u = checkBusinessAccess(user);
+  if (u.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+  return u;
+}
+
 // ─── Product Actions ───
 
 export async function getProducts(search?: string, status?: ProductStatus) {
@@ -59,7 +65,7 @@ export async function createProduct(data: {
   minStock: number;
   image?: string;
 }) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const product = await prisma.product.create({
     data: {
@@ -104,7 +110,7 @@ export async function updateProduct(
     status?: ProductStatus;
   }
 ) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
@@ -120,7 +126,7 @@ export async function updateProduct(
 }
 
 export async function archiveProduct(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
@@ -136,7 +142,7 @@ export async function archiveProduct(id: string) {
 }
 
 export async function activateProduct(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
@@ -152,7 +158,7 @@ export async function activateProduct(id: string) {
 }
 
 export async function deleteProduct(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
@@ -184,7 +190,7 @@ export async function importProducts(
     minStock: number;
   }>
 ) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   if (!items.length) {
     return { success: false, error: "No hay productos para importar", count: 0 };
@@ -294,7 +300,7 @@ export async function adjustStock(data: {
   type: MovementType;
   notes?: string;
 }) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const product = await prisma.product.findFirst({
     where: { id: data.productId, businessId: user.businessId },
