@@ -254,7 +254,7 @@ export function NewSalePage({ products }: { products: any[] }) {
           </span>
         </div>
         <Button
-          size="lg"
+          size="xl"
           className="w-full"
           disabled={cart.length === 0 || isSubmitting}
           onClick={handleSubmit}
@@ -269,7 +269,7 @@ export function NewSalePage({ products }: { products: any[] }) {
         {cart.length > 0 && (
           <Button
             variant="ghost"
-            size="lg"
+            size="xl"
             className="w-full text-muted-foreground hover:text-destructive"
             onClick={clearCart}
             disabled={isSubmitting}
@@ -483,7 +483,7 @@ export function NewSalePage({ products }: { products: any[] }) {
               </div>
 
               <Button
-                size="lg"
+                size="xl"
                 className="shrink-0 bg-[#7b1f3a] hover:bg-[#5a1530] text-white h-11 px-5"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
