@@ -19,11 +19,17 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
-const navigation = [
+const ownerNavigation = [
   { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
   { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
+];
+
+const employeeNavigation = [
+  { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
+  { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
+  { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
 ];
 
 const adminNavigation = [
@@ -41,8 +47,8 @@ export function DesktopSidebar({
 
   const navItems =
     userRole === "OWNER"
-      ? [...navigation, ...adminNavigation]
-      : navigation;
+      ? [...ownerNavigation, ...adminNavigation]
+      : employeeNavigation;
 
   return (
     <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-border lg:bg-card">
@@ -129,8 +135,8 @@ export function MobileSidebar({
 
   const navItems =
     userRole === "OWNER"
-      ? [...navigation, ...adminNavigation]
-      : navigation;
+      ? [...ownerNavigation, ...adminNavigation]
+      : employeeNavigation;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

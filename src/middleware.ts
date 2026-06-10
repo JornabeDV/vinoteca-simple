@@ -6,9 +6,14 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
+    // Redirect employees away from dashboard
+    if (path === "/" && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas", req.url));
+    }
+
     // Protect admin-only routes
     if (path.startsWith("/usuarios") && token?.role !== "OWNER") {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/ventas", req.url));
     }
     if (path.startsWith("/productos/nuevo") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));

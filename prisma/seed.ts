@@ -85,7 +85,7 @@ async function main() {
 
   const owner = await prisma.user.create({
     data: {
-      email: "owner@Vinoteca Simple.com",
+      email: "owner@vinotecasimple.com",
       name: "Carlos Mendoza",
       password: ownerPass,
       role: UserRole.OWNER,
@@ -95,7 +95,7 @@ async function main() {
 
   const employee1 = await prisma.user.create({
     data: {
-      email: "empleado@Vinoteca Simple.com",
+      email: "empleado@vinotecasimple.com",
       name: "María López",
       password: empPass,
       role: UserRole.EMPLOYEE,
@@ -105,7 +105,7 @@ async function main() {
 
   const employee2 = await prisma.user.create({
     data: {
-      email: "juan@Vinoteca Simple.com",
+      email: "juan@vinotecasimple.com",
       name: "Juan Pérez",
       password: empPass,
       role: UserRole.EMPLOYEE,
@@ -335,9 +335,9 @@ async function main() {
 
   console.log("\n🎉 Seed masivo completado!");
   console.log("Credenciales:");
-  console.log("  owner@Vinoteca Simple.com / owner123");
-  console.log("  empleado@Vinoteca Simple.com / empleado123");
-  console.log("  juan@Vinoteca Simple.com / empleado123");
+  console.log("  owner@vinotecasimple.com / owner123");
+  console.log("  empleado@vinotecasimple.com / empleado123");
+  console.log("  juan@vinotecasimple.com / empleado123");
   console.log(`Código de invitación: ${business.inviteCode}`);
 }
 
