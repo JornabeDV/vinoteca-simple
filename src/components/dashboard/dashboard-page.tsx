@@ -88,9 +88,9 @@ export function DashboardPage({
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 border-border/50">
           <CardHeader className="pb-2">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle className="font-heading text-lg">Tendencia de Ventas</CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Time filters */}
                 <div className="flex items-center bg-muted rounded-lg p-0.5">
                   {timeFilters.map((f) => (
@@ -98,7 +98,7 @@ export function DashboardPage({
                       key={f.value}
                       variant={chartDays === f.value ? "secondary" : "ghost"}
                       size="sm"
-                      className="h-7 text-xs"
+                      className="h-7 text-xs px-2 sm:px-3"
                       onClick={() => router.push(`/?chart=${f.value}`)}
                     >
                       {f.label}
@@ -110,20 +110,24 @@ export function DashboardPage({
                   <Button
                     variant={chartMode === "revenue" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 text-xs gap-1"
+                    className="h-7 text-xs gap-1 px-2 sm:px-3"
                     onClick={() => setChartMode("revenue")}
+                    aria-label="Ingresos"
+                    title="Ingresos"
                   >
                     <DollarSign className="h-3 w-3" />
-                    Ingresos
+                    <span className="hidden sm:inline">Ingresos</span>
                   </Button>
                   <Button
                     variant={chartMode === "sales" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 text-xs gap-1"
+                    className="h-7 text-xs gap-1 px-2 sm:px-3"
                     onClick={() => setChartMode("sales")}
+                    aria-label="Cantidad"
+                    title="Cantidad"
                   >
                     <BarChart3 className="h-3 w-3" />
-                    Cantidad
+                    <span className="hidden sm:inline">Cantidad</span>
                   </Button>
                 </div>
               </div>
