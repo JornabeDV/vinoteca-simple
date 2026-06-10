@@ -235,8 +235,8 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
             </Table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/50 px-4 py-3 gap-3">
+            <p className="text-sm text-muted-foreground text-center sm:text-left">
               Mostrando{" "}
               <span className="font-medium text-foreground">
                 {Math.min((currentPage - 1) * 10 + 1, totalItems)}–
