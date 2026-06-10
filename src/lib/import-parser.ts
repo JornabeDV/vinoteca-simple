@@ -205,8 +205,13 @@ export function parseXlsxFile(file: File): Promise<ParsedRow[]> {
   });
 }
 
+function stripBom(text: string): string {
+  return text.charCodeAt(0) === 0xfeff ? text.substring(1) : text;
+}
+
 export function parseCsvText(text: string): ParsedRow[] {
-  const workbook = XLSX.read(text, { type: "string" });
+  const cleanText = stripBom(text);
+  const workbook = XLSX.read(cleanText, { type: "string" });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   const json = XLSX.utils.sheet_to_json<Record<string, string | number | undefined>>(
     firstSheet,
@@ -222,10 +227,10 @@ export function generateTemplateCsv(): string {
     "categoria",
     "varietal",
     "anada",
-    "precio_costo",
-    "precio_venta",
+    "precio costo",
+    "precio venta",
     "stock",
-    "stock_minimo",
+    "stock minimo",
     "descripcion",
   ];
   const example = [

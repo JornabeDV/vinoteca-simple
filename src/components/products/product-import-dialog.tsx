@@ -55,7 +55,6 @@ export function ProductImportDialog({
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [pasteText, setPasteText] = useState("");
 
   const validRows = parsedRows.filter((r) => r.data !== null);
   const invalidRows = parsedRows.filter((r) => r.data === null);
@@ -92,27 +91,12 @@ export function ProductImportDialog({
     [handleFile]
   );
 
-  const handlePasteParse = useCallback(() => {
-    if (!pasteText.trim()) {
-      toast.error("Pegá los datos primero");
-      return;
-    }
-    setIsParsing(true);
-    try {
-      const rows = parseCsvText(pasteText);
-      setParsedRows(rows);
-      toast.success(`${rows.length} filas procesadas`);
-    } catch (err: any) {
-      toast.error(err.message || "Error al procesar los datos");
-      setParsedRows([]);
-    } finally {
-      setIsParsing(false);
-    }
-  }, [pasteText]);
+
 
   const handleDownloadTemplate = useCallback(() => {
     const csv = generateTemplateCsv();
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csvWithBom = "\ufeff" + csv;
+    const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -137,7 +121,6 @@ export function ProductImportDialog({
       if (result.success) {
         toast.success(`${result.count} productos importados correctamente`);
         setParsedRows([]);
-        setPasteText("");
         onOpenChange(false);
         router.refresh();
       } else {
@@ -152,7 +135,6 @@ export function ProductImportDialog({
 
   const reset = useCallback(() => {
     setParsedRows([]);
-    setPasteText("");
     setIsParsing(false);
     setIsImporting(false);
   }, []);
@@ -177,7 +159,7 @@ export function ProductImportDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="template" className="gap-1">
               <Download className="h-3.5 w-3.5" />
               Plantilla
@@ -185,10 +167,6 @@ export function ProductImportDialog({
             <TabsTrigger value="upload" className="gap-1">
               <Upload className="h-3.5 w-3.5" />
               Subir archivo
-            </TabsTrigger>
-            <TabsTrigger value="paste" className="gap-1">
-              <FileText className="h-3.5 w-3.5" />
-              Pegar datos
             </TabsTrigger>
           </TabsList>
 
@@ -206,10 +184,10 @@ export function ProductImportDialog({
                   "categoria",
                   "varietal",
                   "anada",
-                  "precio_costo",
-                  "precio_venta",
+                  "precio costo",
+                  "precio venta",
                   "stock",
-                  "stock_minimo",
+                  "stock minimo",
                   "descripcion",
                 ].map((col) => (
                   <Badge key={col} variant="secondary" className="text-xs">
@@ -217,9 +195,6 @@ export function ProductImportDialog({
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                También aceptamos nombres en inglés: name, winery, category, varietal, vintage, costPrice, salePrice, currentStock, minStock, description.
-              </p>
             </div>
             <Button
               onClick={handleDownloadTemplate}
@@ -275,31 +250,7 @@ export function ProductImportDialog({
             </div>
           </TabsContent>
 
-          {/* Paste Tab */}
-          <TabsContent value="paste" className="space-y-4">
-            <Textarea
-              placeholder={`Pegá acá los datos CSV, por ejemplo:
-nombre,bodega,categoria,varietal,precio_costo,precio_venta,stock,stock_minimo
-Malbec Reserva,Rutini,Vino Tinto,Malbec,15000,25000,24,5`}
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              rows={8}
-              className="font-mono text-xs"
-            />
-            <Button
-              onClick={handlePasteParse}
-              variant="outline"
-              className="w-full gap-2"
-              disabled={isParsing}
-            >
-              {isParsing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="h-4 w-4" />
-              )}
-              Procesar datos
-            </Button>
-          </TabsContent>
+
         </Tabs>
 
         {/* Preview */}

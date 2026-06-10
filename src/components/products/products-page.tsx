@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,48 @@ import { toast } from "sonner";
 export function ProductsPage({ products }: { products: any[] }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleExport = () => {
+    const headers = [
+      "nombre",
+      "bodega",
+      "categoria",
+      "varietal",
+      "anada",
+      "tipo",
+      "precio_costo",
+      "precio_venta",
+      "stock",
+      "stock_minimo",
+      "descripcion",
+    ];
+    const rows = products.map((p) => [
+      p.name || "",
+      p.brand || "",
+      p.category || "",
+      p.style || "",
+      p.year || "",
+      p.productType || "",
+      p.costPrice || "",
+      p.salePrice || "",
+      p.currentStock || "",
+      p.minStock || "",
+      p.description || "",
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    // Add BOM so Excel detects UTF-8 correctly
+    const csvWithBom = "\ufeff" + csv;
+    const blob = new Blob([csvWithBom], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `productos-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`${products.length} productos exportados`);
+  };
 
   const {
     data: paginatedProducts,
@@ -135,6 +178,15 @@ export function ProductsPage({ products }: { products: any[] }) {
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <ProductImportButton />
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleExport}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
           <Link href="/productos/nuevo" data-tour="productos-nuevo">
             <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Package,
@@ -107,6 +107,10 @@ export function InventoryPage({
     },
   });
 
+  const filteredMovements = selectedProductId
+    ? movements.filter((m) => m.productId === selectedProductId)
+    : movements;
+
   const {
     data: paginatedMovements,
     currentPage: movementPage,
@@ -118,7 +122,7 @@ export function InventoryPage({
     handleSort: handleMovementSort,
     handleSearch: handleMovementSearch,
   } = useDataTable({
-    data: movements,
+    data: filteredMovements,
     itemsPerPage: 10,
     searchFn: (movement, query) => {
       const q = query.toLowerCase();
@@ -374,7 +378,11 @@ export function InventoryPage({
                       </TableRow>
                     ) : (
                       paginatedProducts.map((product) => (
-                        <TableRow key={product.id}>
+                        <TableRow
+                          key={product.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => selectProduct(product.id)}
+                        >
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">{product.name}</span>
@@ -488,8 +496,8 @@ export function InventoryPage({
         <TabsContent value="historial">
           <Card className="border-border/50 overflow-hidden">
             <CardContent className="p-0 space-y-4">
-              <div className="px-4 pt-4">
-                <div className="relative max-w-sm">
+              <div className="px-4 pt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div className="relative max-w-sm flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Buscar en historial..."
@@ -498,6 +506,21 @@ export function InventoryPage({
                     className="pl-9 h-10"
                   />
                 </div>
+                {selectedProductId && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {products.find((p) => p.id === selectedProductId)?.name || "Producto"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={clearProductFilter}
+                    >
+                      Limpiar filtro
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <Table>
