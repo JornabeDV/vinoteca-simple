@@ -29,7 +29,7 @@ const plans = [
     features: [
       "Productos ilimitados",
       "Hasta 5 usuarios",
-      "Dashboard de métricas",
+      "Panel general de métricas",
       "Alertas de stock avanzadas",
       "Historial de movimientos",
       "Soporte prioritario",

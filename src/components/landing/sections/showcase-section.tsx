@@ -11,7 +11,7 @@ const showcases = [
   {
     mockup: DashboardMockup,
     icon: TrendingUp,
-    title: "Dashboard en tiempo real",
+    title: "Panel general en tiempo real",
     description:
       "Tu negocio de un vistazo. Ventas del mes, ticket promedio, productos más vendidos y tendencias. Todo actualizado al instante sin tocar una sola planilla.",
   },

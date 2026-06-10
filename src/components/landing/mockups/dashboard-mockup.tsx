@@ -20,7 +20,7 @@ export function DashboardMockup() {
             <div className="w-3 h-3 rounded-full bg-white/30" />
             <div className="w-3 h-3 rounded-full bg-white/30" />
           </div>
-          <div className="ml-4 text-white/80 text-xs font-medium">Dashboard</div>
+          <div className="ml-4 text-white/80 text-xs font-medium">Panel general</div>
         </div>
 
         {/* KPIs */}

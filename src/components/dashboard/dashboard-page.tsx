@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
@@ -170,9 +171,10 @@ export function DashboardPage({ data }: { data: DashboardData }) {
             ) : (
               <div className="space-y-3">
                 {data.recentSales.map((sale) => (
-                  <div
+                  <Link
                     key={sale.id}
-                    className="flex items-center justify-between rounded-lg border border-border/50 p-3"
+                    href={`/ventas/detalle/${sale.id}`}
+                    className="flex items-center justify-between rounded-lg border border-border/50 p-3 hover:bg-accent transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{sale.saleNumber}</p>
@@ -187,7 +189,7 @@ export function DashboardPage({ data }: { data: DashboardData }) {
                       </span>
                       <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

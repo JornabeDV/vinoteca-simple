@@ -28,7 +28,7 @@ function getInitials(name?: string | null) {
 
 function getPageTitle(pathname: string) {
   const map: Record<string, string> = {
-    "/": "Dashboard",
+    "/": "Panel general",
     "/productos": "Productos",
     "/productos/nuevo": "Nuevo Producto",
     "/inventario": "Inventario",

@@ -148,6 +148,24 @@ export async function activateProduct(id: string) {
   return serializeData(product);
 }
 
+export async function deleteProduct(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const existing = await prisma.wineProduct.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Producto no encontrado");
+
+  await prisma.wineProduct.delete({
+    where: { id },
+  });
+
+  revalidatePath("/productos");
+  revalidatePath("/inventario");
+  revalidatePath("/");
+  return { success: true };
+}
+
 // ─── Inventory Actions ───
 
 export async function getInventoryMovements(productId?: string) {

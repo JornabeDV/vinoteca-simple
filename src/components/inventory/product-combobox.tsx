@@ -45,25 +45,27 @@ export function ProductCombobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between h-10 font-normal"
-        >
-          {selectedProduct ? (
-            <span className="truncate">
-              {selectedProduct.name}{" "}
-              <span className="text-muted-foreground">
-                ({selectedProduct.currentStock} u.)
-              </span>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between h-10 font-normal"
+          />
+        }
+      >
+        {selectedProduct ? (
+          <span className="truncate">
+            {selectedProduct.name}{" "}
+            <span className="text-muted-foreground">
+              ({selectedProduct.currentStock} u.)
             </span>
-          ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">{placeholder}</span>
+        )}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popper-anchor-width] p-0" align="start">
         <Command

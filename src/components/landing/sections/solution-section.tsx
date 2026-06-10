@@ -21,7 +21,7 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: "Dashboard de métricas",
+    title: "Panel general de métricas",
     description: "Visualizá ventas, productos más vendidos, margen de ganancia y tendencias en tiempo real.",
   },
 ];

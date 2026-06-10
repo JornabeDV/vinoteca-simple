@@ -160,7 +160,14 @@ export function InventoryPage({
                   onValueChange={(v) => setMovementType((v as MovementType) || MovementType.ADJUSTMENT)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {{
+                        [MovementType.PURCHASE]: "Compra (entrada)",
+                        [MovementType.ADJUSTMENT]: "Ajuste (entrada)",
+                        [MovementType.SALE]: "Venta (salida)",
+                        [MovementType.CORRECTION]: "Corrección",
+                      }[movementType]}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={MovementType.PURCHASE}>

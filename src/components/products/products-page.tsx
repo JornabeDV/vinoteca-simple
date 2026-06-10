@@ -11,7 +11,8 @@ import {
   ArchiveRestore,
   Pencil,
   ArrowUpDown,
-  Filter,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,17 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
-import { archiveProduct, activateProduct } from "@/lib/actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { archiveProduct, activateProduct, deleteProduct } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
-import { ProductStatus } from "@prisma/client";
 
 export function ProductsPage({ products }: { products: any[] }) {
   const router = useRouter();
@@ -42,6 +37,7 @@ export function ProductsPage({ products }: { products: any[] }) {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [sortKey, setSortKey] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -75,22 +71,41 @@ export function ProductsPage({ products }: { products: any[] }) {
   });
 
   const handleArchive = async (id: string) => {
+    setLoadingId(id);
     try {
       await archiveProduct(id);
       toast.success("Producto archivado");
       router.refresh();
     } catch {
       toast.error("Error al archivar");
+    } finally {
+      setLoadingId(null);
     }
   };
 
   const handleActivate = async (id: string) => {
+    setLoadingId(id);
     try {
       await activateProduct(id);
       toast.success("Producto activado");
       router.refresh();
     } catch {
       toast.error("Error al activar");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setLoadingId(id);
+    try {
+      await deleteProduct(id);
+      toast.success("Producto eliminado");
+      router.refresh();
+    } catch {
+      toast.error("Error al eliminar");
+    } finally {
+      setLoadingId(null);
     }
   };
 
@@ -151,7 +166,7 @@ export function ProductsPage({ products }: { products: any[] }) {
                     </button>
                   </TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="w-[100px]">Acciones</TableHead>
+                  <TableHead className="w-[140px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -167,102 +182,142 @@ export function ProductsPage({ products }: { products: any[] }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedProducts.map((product) => (
-                    <TableRow key={product.id} className="group">
-                      <TableCell>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                          {product.image ? (
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="h-10 w-10 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <Wine className="h-5 w-5 text-muted-foreground" />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{product.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {product.varietal}
-                            {product.vintage && ` · ${product.vintage}`}
+                  sortedProducts.map((product) => {
+                    const isLoading = loadingId === product.id;
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                            {product.image ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="h-10 w-10 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <Wine className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{product.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {product.varietal}
+                              {product.vintage && ` · ${product.vintage}`}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {product.winery}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {product.category}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatPrice(Number(product.salePrice))}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              product.currentStock <= product.minStock
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {product.currentStock}
                           </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {product.winery}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {product.category}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatPrice(Number(product.salePrice))}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            product.currentStock <= product.minStock
-                              ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {product.currentStock}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            product.status === "ACTIVE"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className={`text-xs ${
-                            product.status === "ACTIVE"
-                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
-                              : ""
-                          }`}
-                        >
-                          {product.status === "ACTIVE" ? "Activo" : "Archivado"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              product.status === "ACTIVE"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className={`text-xs ${
+                              product.status === "ACTIVE"
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
+                                : ""
+                            }`}
+                          >
+                            {product.status === "ACTIVE" ? "Activo" : "Archivado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => router.push(`/productos/editar/${product.id}`)}
                             >
-                              <Filter className="h-4 w-4" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.location.href = `/productos/editar/${product.id}`}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
+
                             {product.status === "ACTIVE" ? (
-                              <DropdownMenuItem
-                                onClick={() => handleArchive(product.id)}
-                              >
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archivar
-                              </DropdownMenuItem>
+                              <ConfirmDialog
+                                title="Archivar producto"
+                                description={`¿Estás seguro de que querés archivar "${product.name}"? Podés volver a activarlo después.`}
+                                confirmText="Archivar"
+                                cancelText="Cancelar"
+                                variant="default"
+                                isLoading={isLoading}
+                                onConfirm={() => handleArchive(product.id)}
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             ) : (
-                              <DropdownMenuItem
-                                onClick={() => handleActivate(product.id)}
-                              >
-                                <ArchiveRestore className="mr-2 h-4 w-4" />
-                                Activar
-                              </DropdownMenuItem>
+                              <ConfirmDialog
+                                title="Activar producto"
+                                description={`¿Querés volver a activar "${product.name}"?`}
+                                confirmText="Activar"
+                                cancelText="Cancelar"
+                                variant="default"
+                                isLoading={isLoading}
+                                onConfirm={() => handleActivate(product.id)}
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                                  >
+                                    <ArchiveRestore className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+
+                            <ConfirmDialog
+                              title="Eliminar producto"
+                              description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente? Esta acción también eliminará sus registros de ventas e inventario asociados.`}
+                              confirmText="Eliminar"
+                              cancelText="Cancelar"
+                              variant="destructive"
+                              isLoading={isLoading}
+                              onConfirm={() => handleDelete(product.id)}
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

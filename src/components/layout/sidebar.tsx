@@ -20,7 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Panel general", href: "/", icon: LayoutDashboard },
   { name: "Productos", href: "/productos", icon: Wine },
   { name: "Inventario", href: "/inventario", icon: Package },
   { name: "Ventas", href: "/ventas", icon: ShoppingCart },
