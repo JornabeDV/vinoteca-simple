@@ -62,7 +62,7 @@ export default async function SaleDetail({
                 <div>
                   <p className="font-medium">{item.product?.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {item.product?.winery}
+                    {item.product?.brand}
                   </p>
                 </div>
                 <div className="text-right">

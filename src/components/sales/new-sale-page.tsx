@@ -25,7 +25,7 @@ import { toast } from "sonner";
 interface CartItem {
   productId: string;
   name: string;
-  winery: string;
+  brand: string;
   salePrice: number;
   quantity: number;
   availableStock: number;
@@ -44,7 +44,7 @@ export function NewSalePage({ products }: { products: any[] }) {
       p.currentStock > 0 &&
       !cart.find((c) => c.productId === p.id) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.winery.toLowerCase().includes(search.toLowerCase()))
+        p.brand.toLowerCase().includes(search.toLowerCase()))
   );
 
   function addToCart(product: any) {
@@ -53,7 +53,7 @@ export function NewSalePage({ products }: { products: any[] }) {
       {
         productId: product.id,
         name: product.name,
-        winery: product.winery,
+        brand: product.brand,
         salePrice: Number(product.salePrice),
         quantity: 1,
         availableStock: product.currentStock,
@@ -152,7 +152,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                         <div>
                           <p className="text-sm font-medium">{product.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {product.winery} · {product.varietal}
+                            {product.brand} · {product.style}
                           </p>
                         </div>
                       </div>
@@ -203,7 +203,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.winery}
+                        {item.brand}
                       </p>
                       <p className="text-sm font-semibold text-[#7b1f3a]">
                         {formatPrice(item.salePrice)}

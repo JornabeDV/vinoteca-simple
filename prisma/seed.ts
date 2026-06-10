@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, UserRole, ProductStatus, MovementType } from "@prisma/client";
+import { PrismaClient, UserRole, ProductStatus, ProductType, MovementType } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
@@ -66,7 +66,7 @@ async function main() {
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.inventoryMovement.deleteMany();
-  await prisma.wineProduct.deleteMany();
+  await prisma.product.deleteMany();
   await prisma.user.deleteMany();
   await prisma.business.deleteMany();
 
@@ -121,20 +121,20 @@ async function main() {
   const usedNames = new Set<string>();
 
   for (let i = 0; i < 40; i++) {
-    const winery = rand(WINERIES);
+    const brand = rand(WINERIES);
     const baseName = rand(WINE_NAMES);
     const adj = Math.random() > 0.4 ? rand(ADJECTIVES) : "";
     const name = adj ? `${baseName} ${adj}` : baseName;
-    const fullName = `${winery} ${name}`;
+    const fullName = `${brand} ${name}`;
 
     if (usedNames.has(fullName)) continue;
     usedNames.add(fullName);
 
-    const varietal = rand(VARIETALS);
+    const style = rand(VARIETALS);
     const category =
-      varietal === "Rosé" ? "Vino Rosado" :
-      varietal === "Espumante" ? "Espumante" :
-      ["Torrontés", "Chardonnay", "Sauvignon Blanc", "Chenin Blanc", "Viognier", "Riesling", "Semillón"].includes(varietal)
+      style === "Rosé" ? "Vino Rosado" :
+      style === "Espumante" ? "Espumante" :
+      ["Torrontés", "Chardonnay", "Sauvignon Blanc", "Chenin Blanc", "Viognier", "Riesling", "Semillón"].includes(style)
         ? "Vino Blanco" : "Vino Tinto";
 
     const costPrice = randPrice(2500, 12000);
@@ -146,11 +146,12 @@ async function main() {
     productsData.push({
       id: `wine-${i + 1}`,
       name: fullName,
-      winery,
+      brand,
       category,
-      varietal,
-      vintage: randInt(2018, 2023),
-      description: `${category} de ${winery}. Varietal ${varietal}${adj ? `, línea ${adj}` : ""}. Producción limitada de la región de Mendoza, Argentina.`,
+      style,
+      year: randInt(2018, 2023),
+      description: `${category} de ${brand}. Varietal ${style}${adj ? `, línea ${adj}` : ""}. Producción limitada de la región de Mendoza, Argentina.`,
+      productType: ProductType.WINE,
       costPrice,
       salePrice,
       currentStock,
@@ -160,8 +161,43 @@ async function main() {
     });
   }
 
+  // ─── OTROS PRODUCTOS (cervezas, whiskies, aguas) ───
+  const otherProducts = [
+    {
+      id: "beer-1", name: "Quilmes Clásica", brand: "Quilmes", category: "Cerveza", style: "Lager",
+      year: null, description: "Cerveza rubia clásica argentina.", productType: ProductType.BEER,
+      costPrice: 800, salePrice: 1400, currentStock: 60, minStock: 10, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+    {
+      id: "beer-2", name: "Stella Artois", brand: "Stella Artois", category: "Cerveza", style: "Premium Lager",
+      year: null, description: "Cerveza belga premium.", productType: ProductType.BEER,
+      costPrice: 1200, salePrice: 2100, currentStock: 40, minStock: 8, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+    {
+      id: "spirit-1", name: "Johnnie Walker Black Label", brand: "Johnnie Walker", category: "Whisky", style: "Blended Scotch",
+      year: null, description: "Whisky escocés de 12 años.", productType: ProductType.SPIRIT,
+      costPrice: 25000, salePrice: 42000, currentStock: 12, minStock: 3, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+    {
+      id: "spirit-2", name: "Jack Daniel's Old No. 7", brand: "Jack Daniel's", category: "Whisky", style: "Tennessee Whiskey",
+      year: null, description: "Whisky americano icónico.", productType: ProductType.SPIRIT,
+      costPrice: 22000, salePrice: 38000, currentStock: 10, minStock: 3, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+    {
+      id: "water-1", name: "Villa del Sur sin gas", brand: "Villa del Sur", category: "Agua", style: "Sin gas",
+      year: null, description: "Agua mineral natural.", productType: ProductType.WATER,
+      costPrice: 400, salePrice: 700, currentStock: 100, minStock: 20, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+    {
+      id: "other-1", name: "Fernet Branca", brand: "Branca", category: "Aperitivo", style: "Amargo",
+      year: null, description: "Fernet italiano, clásico argentino.", productType: ProductType.OTHER,
+      costPrice: 4500, salePrice: 7800, currentStock: 25, minStock: 5, status: ProductStatus.ACTIVE, businessId: business.id,
+    },
+  ];
+  productsData.push(...otherProducts);
+
   for (const p of productsData) {
-    await prisma.wineProduct.create({ data: p });
+    await prisma.product.create({ data: p });
   }
   console.log(`✅ ${productsData.length} productos creados`);
 
@@ -262,7 +298,7 @@ async function main() {
         },
       });
 
-      await prisma.wineProduct.update({
+      await prisma.product.update({
         where: { id: item.productId },
         data: { currentStock: { decrement: item.quantity } },
       });
@@ -273,7 +309,7 @@ async function main() {
   console.log(`✅ ${saleCount} ventas creadas`);
 
   // ─── ALGUNAS COMPRAS RECIENTES PARA REPOBLAR STOCK ───
-  const lowStockProducts = await prisma.wineProduct.findMany({
+  const lowStockProducts = await prisma.product.findMany({
     where: { businessId: business.id, status: ProductStatus.ACTIVE, currentStock: { lte: 5 } },
   });
 
@@ -290,7 +326,7 @@ async function main() {
         createdAt: randDate(14),
       },
     });
-    await prisma.wineProduct.update({
+    await prisma.product.update({
       where: { id: p.id },
       data: { currentStock: { increment: qty } },
     });

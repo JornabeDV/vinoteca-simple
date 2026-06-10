@@ -2,7 +2,7 @@
 
 import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
-import { MovementType, ProductStatus, Prisma } from "@prisma/client";
+import { MovementType, ProductStatus, ProductType, Prisma } from "@prisma/client";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
 
@@ -21,16 +21,17 @@ export async function getProducts(search?: string, status?: ProductStatus) {
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
-      { winery: { contains: search, mode: "insensitive" } },
+      { brand: { contains: search, mode: "insensitive" } },
       { category: { contains: search, mode: "insensitive" } },
-      { varietal: { contains: search, mode: "insensitive" } },
+      { style: { contains: search, mode: "insensitive" } },
     ];
   }
   if (status) where.status = status;
 
-  const products = await prisma.wineProduct.findMany({
+  const products = await prisma.product.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: 300,
   });
   return serializeData(products);
 }
@@ -38,7 +39,7 @@ export async function getProducts(search?: string, status?: ProductStatus) {
 export async function getProductById(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const product = await prisma.wineProduct.findFirst({
+  const product = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   return serializeData(product);
@@ -46,11 +47,12 @@ export async function getProductById(id: string) {
 
 export async function createProduct(data: {
   name: string;
-  winery: string;
+  brand: string;
   category: string;
-  varietal: string;
-  vintage?: number | null;
+  style: string;
+  year?: number | null;
   description?: string;
+  productType?: ProductType;
   costPrice: number;
   salePrice: number;
   currentStock: number;
@@ -59,7 +61,7 @@ export async function createProduct(data: {
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const product = await prisma.wineProduct.create({
+  const product = await prisma.product.create({
     data: {
       ...data,
       costPrice: data.costPrice,
@@ -89,11 +91,12 @@ export async function updateProduct(
   id: string,
   data: {
     name?: string;
-    winery?: string;
+    brand?: string;
     category?: string;
-    varietal?: string;
-    vintage?: number | null;
+    style?: string;
+    year?: number | null;
     description?: string;
+    productType?: ProductType;
     costPrice?: number;
     salePrice?: number;
     minStock?: number;
@@ -103,12 +106,12 @@ export async function updateProduct(
 ) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const existing = await prisma.wineProduct.findFirst({
+  const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Producto no encontrado");
 
-  const product = await prisma.wineProduct.update({
+  const product = await prisma.product.update({
     where: { id },
     data,
   });
@@ -119,12 +122,12 @@ export async function updateProduct(
 export async function archiveProduct(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const existing = await prisma.wineProduct.findFirst({
+  const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Producto no encontrado");
 
-  const product = await prisma.wineProduct.update({
+  const product = await prisma.product.update({
     where: { id },
     data: { status: ProductStatus.ARCHIVED },
   });
@@ -135,12 +138,12 @@ export async function archiveProduct(id: string) {
 export async function activateProduct(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const existing = await prisma.wineProduct.findFirst({
+  const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Producto no encontrado");
 
-  const product = await prisma.wineProduct.update({
+  const product = await prisma.product.update({
     where: { id },
     data: { status: ProductStatus.ACTIVE },
   });
@@ -151,12 +154,12 @@ export async function activateProduct(id: string) {
 export async function deleteProduct(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const existing = await prisma.wineProduct.findFirst({
+  const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Producto no encontrado");
 
-  await prisma.wineProduct.delete({
+  await prisma.product.delete({
     where: { id },
   });
 
@@ -164,6 +167,104 @@ export async function deleteProduct(id: string) {
   revalidatePath("/inventario");
   revalidatePath("/");
   return { success: true };
+}
+
+export async function importProducts(
+  items: Array<{
+    name: string;
+    brand: string;
+    category: string;
+    style: string;
+    year?: number | null;
+    productType?: string;
+    description?: string;
+    costPrice: number;
+    salePrice: number;
+    currentStock: number;
+    minStock: number;
+  }>
+) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  if (!items.length) {
+    return { success: false, error: "No hay productos para importar", count: 0 };
+  }
+
+  if (items.length > 500) {
+    return { success: false, error: "Máximo 500 productos por importación", count: 0 };
+  }
+
+  // Map string productType to enum
+  const parseProductType = (val?: string): ProductType => {
+    if (!val) return ProductType.WINE;
+    const upper = val.toUpperCase().trim();
+    if (Object.values(ProductType).includes(upper as ProductType)) {
+      return upper as ProductType;
+    }
+    return ProductType.WINE;
+  };
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const createdProducts = [];
+      const movements = [];
+
+      for (const item of items) {
+        const product = await tx.product.create({
+          data: {
+            name: item.name,
+            brand: item.brand,
+            category: item.category,
+            style: item.style,
+            year: item.year ?? null,
+            productType: parseProductType(item.productType),
+            description: item.description,
+            costPrice: item.costPrice,
+            salePrice: item.salePrice,
+            currentStock: item.currentStock,
+            minStock: item.minStock,
+            businessId: user.businessId,
+          },
+        });
+
+        createdProducts.push(product);
+
+        if (item.currentStock > 0) {
+          movements.push(
+            tx.inventoryMovement.create({
+              data: {
+                productId: product.id,
+                userId: user.id,
+                businessId: user.businessId,
+                quantity: item.currentStock,
+                type: MovementType.PURCHASE,
+                notes: "Stock inicial (importación masiva)",
+              },
+            })
+          );
+        }
+      }
+
+      if (movements.length > 0) {
+        await Promise.all(movements);
+      }
+
+      return createdProducts.length;
+    });
+
+    revalidatePath("/productos");
+    revalidatePath("/inventario");
+    revalidatePath("/");
+
+    return { success: true, count: result };
+  } catch (error: any) {
+    console.error("Import error:", error);
+    return {
+      success: false,
+      error: error.message || "Error al importar productos",
+      count: 0,
+    };
+  }
 }
 
 // ─── Inventory Actions ───
@@ -181,7 +282,7 @@ export async function getInventoryMovements(productId?: string) {
       user: { select: { name: true, email: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: 300,
   });
   return serializeData(movements);
 }
@@ -195,7 +296,7 @@ export async function adjustStock(data: {
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
 
-  const product = await prisma.wineProduct.findFirst({
+  const product = await prisma.product.findFirst({
     where: { id: data.productId, businessId: user.businessId },
   });
 
@@ -215,7 +316,7 @@ export async function adjustStock(data: {
         notes: data.notes,
       },
     }),
-    prisma.wineProduct.update({
+    prisma.product.update({
       where: { id: data.productId },
       data: { currentStock: newStock },
     }),
@@ -246,7 +347,7 @@ export async function getSales(search?: string) {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 300,
   });
   return serializeData(sales);
 }
@@ -279,7 +380,7 @@ export async function createSale(data: {
   const saleNumber = `V-${Date.now()}`;
   let totalAmount = 0;
 
-  const products = await prisma.wineProduct.findMany({
+  const products = await prisma.product.findMany({
     where: {
       id: { in: data.items.map((i) => i.productId) },
       businessId: user.businessId,
@@ -323,7 +424,7 @@ export async function createSale(data: {
         },
       });
 
-      await tx.wineProduct.update({
+      await tx.product.update({
         where: { id: item.productId },
         data: { currentStock: product.currentStock - item.quantity },
       });
@@ -409,14 +510,14 @@ export async function getDashboardData(chartDays: number = 7) {
     prisma.sale.findMany({
       where: { businessId: user.businessId, createdAt: { gte: startOfLastMonth, lt: startOfMonth } },
     }),
-    prisma.wineProduct.count({
+    prisma.product.count({
       where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
     }),
-    prisma.wineProduct.findMany({
+    prisma.product.findMany({
       where: {
         businessId: user.businessId,
         status: ProductStatus.ACTIVE,
-        currentStock: { lte: prisma.wineProduct.fields.minStock },
+        currentStock: { lte: prisma.product.fields.minStock },
       },
       orderBy: { currentStock: "asc" },
       take: 5,
@@ -437,7 +538,7 @@ export async function getDashboardData(chartDays: number = 7) {
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
-    prisma.wineProduct.findMany({
+    prisma.product.findMany({
       where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
       select: { currentStock: true, costPrice: true },
     }),
@@ -446,7 +547,7 @@ export async function getDashboardData(chartDays: number = 7) {
   const topProductIds = topProducts.map((p) => p.productId);
   const topProductDetails =
     topProductIds.length > 0
-      ? await prisma.wineProduct.findMany({
+      ? await prisma.product.findMany({
           where: { businessId: user.businessId, id: { in: topProductIds } },
         })
       : [];

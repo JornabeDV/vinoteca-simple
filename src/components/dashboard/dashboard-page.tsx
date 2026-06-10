@@ -53,7 +53,7 @@ export function DashboardPage({
   return (
     <div className="space-y-8">
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="dashboard-kpis">
         <KpiCard
           title="Ventas Hoy"
           value={data.salesToday.count.toString()}
@@ -162,7 +162,7 @@ export function DashboardPage({
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.winery}</p>
+                      <p className="text-xs text-muted-foreground">{product.brand}</p>
                     </div>
                     <Badge
                       variant="outline"
@@ -207,7 +207,7 @@ export function DashboardPage({
                         {item.product?.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {item.product?.winery}
+                        {item.product?.brand}
                       </p>
                     </div>
                     <Badge variant="secondary" className="shrink-0">

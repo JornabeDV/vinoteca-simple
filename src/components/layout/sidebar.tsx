@@ -20,14 +20,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Panel general", href: "/", icon: LayoutDashboard },
-  { name: "Productos", href: "/productos", icon: Wine },
-  { name: "Inventario", href: "/inventario", icon: Package },
-  { name: "Ventas", href: "/ventas", icon: ShoppingCart },
+  { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: undefined as string | undefined },
+  { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
+  { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
+  { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
 ];
 
 const adminNavigation = [
-  { name: "Usuarios", href: "/usuarios", icon: Users },
+  { name: "Usuarios", href: "/usuarios", icon: Users, tourId: undefined as string | undefined },
 ];
 
 export function DesktopSidebar({
@@ -134,9 +134,9 @@ export function MobileSidebar({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger>
-        <Button variant="ghost" size="icon-lg">
+        <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-11 w-11 sm:h-9 sm:w-9 hover:bg-accent hover:text-foreground cursor-pointer">
           <Menu className="h-5 w-5" />
-        </Button>
+        </div>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex flex-col h-full">
@@ -172,6 +172,7 @@ export function MobileSidebar({
                   key={item.name}
                   href={item.href}
                   onClick={() => setOpen(false)}
+                  data-tour={item.tourId}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive

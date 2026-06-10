@@ -42,9 +42,9 @@ export function LandingNavbar() {
             <div className="lg:hidden">
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger>
-                  <Button variant="ghost" size="icon-lg" className="-ml-2">
+                  <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-11 w-11 sm:h-9 sm:w-9 hover:bg-accent hover:text-foreground cursor-pointer -ml-2">
                     <Menu className="h-5 w-5" />
-                  </Button>
+                  </div>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[85vw] sm:w-80 p-0">
                   {/* Drawer header */}

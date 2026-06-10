@@ -6,10 +6,8 @@ import { useSession } from "next-auth/react";
 import {
   Package,
   Plus,
-  Minus,
   Search,
   History,
-  ArrowUpDown,
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +41,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination } from "@/components/ui/pagination";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { ProductCombobox } from "./product-combobox";
+import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { adjustStock } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
@@ -58,7 +59,6 @@ export function InventoryPage({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("");
   const [movementType, setMovementType] = useState<MovementType>(MovementType.ADJUSTMENT);
@@ -66,16 +66,96 @@ export function InventoryPage({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.status === "ACTIVE" &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.winery.toLowerCase().includes(search.toLowerCase()))
-  );
-
   const lowStockProducts = products.filter(
     (p) => p.status === "ACTIVE" && p.currentStock <= p.minStock
   );
+
+  const {
+    data: paginatedProducts,
+    currentPage: productPage,
+    totalPages: productTotalPages,
+    totalItems: productTotalItems,
+    sort: productSort,
+    searchQuery: productSearch,
+    setCurrentPage: setProductPage,
+    handleSort: handleProductSort,
+    handleSearch: handleProductSearch,
+  } = useDataTable({
+    data: products,
+    itemsPerPage: 10,
+    searchFn: (product, query) => {
+      const q = query.toLowerCase();
+      return (
+        product.name?.toLowerCase().includes(q) ||
+        product.winery?.toLowerCase().includes(q)
+      );
+    },
+    sortFn: (a, b, sort: SortState) => {
+      const dir = sort.direction === "asc" ? 1 : -1;
+      switch (sort.key) {
+        case "name":
+          return (a.name || "").localeCompare(b.name || "") * dir;
+        case "winery":
+          return (a.winery || "").localeCompare(b.winery || "") * dir;
+        case "currentStock":
+          return (Number(a.currentStock) - Number(b.currentStock)) * dir;
+        case "minStock":
+          return (Number(a.minStock) - Number(b.minStock)) * dir;
+        default:
+          return 0;
+      }
+    },
+  });
+
+  const {
+    data: paginatedMovements,
+    currentPage: movementPage,
+    totalPages: movementTotalPages,
+    totalItems: movementTotalItems,
+    sort: movementSort,
+    searchQuery: movementSearch,
+    setCurrentPage: setMovementPage,
+    handleSort: handleMovementSort,
+    handleSearch: handleMovementSearch,
+  } = useDataTable({
+    data: movements,
+    itemsPerPage: 10,
+    searchFn: (movement, query) => {
+      const q = query.toLowerCase();
+      return (
+        movement.product?.name?.toLowerCase().includes(q) ||
+        movement.product?.winery?.toLowerCase().includes(q) ||
+        movement.user?.name?.toLowerCase().includes(q) ||
+        movement.user?.email?.toLowerCase().includes(q)
+      );
+    },
+    sortFn: (a, b, sort: SortState) => {
+      const dir = sort.direction === "asc" ? 1 : -1;
+      switch (sort.key) {
+        case "date":
+          return (
+            (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) *
+            dir
+          );
+        case "product":
+          return (
+            (a.product?.name || "").localeCompare(b.product?.name || "") * dir
+          );
+        case "type":
+          return (a.type || "").localeCompare(b.type || "") * dir;
+        case "quantity":
+          return (Number(a.quantity) - Number(b.quantity)) * dir;
+        case "user":
+          return (
+            (a.user?.name || a.user?.email || "").localeCompare(
+              b.user?.name || b.user?.email || ""
+            ) * dir
+          );
+        default:
+          return 0;
+      }
+    },
+  });
 
   async function handleAdjustment(e: React.FormEvent) {
     e.preventDefault();
@@ -116,17 +196,17 @@ export function InventoryPage({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar productos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={productSearch}
+            onChange={(e) => handleProductSearch(e.target.value)}
             className="pl-9 h-10"
           />
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger>
-            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
+          <DialogTrigger data-tour="inventario-ajustar">
+            <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-12 gap-1.5 px-3 sm:h-9 sm:px-2.5 bg-[#7b1f3a] hover:bg-[#5a1530] text-white cursor-pointer">
               <Plus className="h-4 w-4" />
               Ajustar Stock
-            </Button>
+            </div>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -247,15 +327,43 @@ export function InventoryPage({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Producto</TableHead>
-                      <TableHead>Bodega</TableHead>
-                      <TableHead>Stock Actual</TableHead>
-                      <TableHead>Stock Mínimo</TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Producto"
+                          sortKey="name"
+                          sort={productSort}
+                          onSort={handleProductSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Bodega"
+                          sortKey="winery"
+                          sort={productSort}
+                          onSort={handleProductSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Stock Actual"
+                          sortKey="currentStock"
+                          sort={productSort}
+                          onSort={handleProductSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Stock Mínimo"
+                          sortKey="minStock"
+                          sort={productSort}
+                          onSort={handleProductSort}
+                        />
+                      </TableHead>
                       <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.length === 0 ? (
+                    {paginatedProducts.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-32 text-center">
                           <Package className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
@@ -265,7 +373,7 @@ export function InventoryPage({
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredProducts.map((product) => (
+                      paginatedProducts.map((product) => (
                         <TableRow key={product.id}>
                           <TableCell>
                             <div className="flex flex-col">
@@ -311,6 +419,22 @@ export function InventoryPage({
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando{" "}
+                  <span className="font-medium text-foreground">
+                    {Math.min((productPage - 1) * 10 + 1, productTotalItems)}–
+                    {Math.min(productPage * 10, productTotalItems)}
+                  </span>{" "}
+                  de <span className="font-medium text-foreground">{productTotalItems}</span> productos
+                </p>
+                <Pagination
+                  currentPage={productPage}
+                  totalPages={productTotalPages}
+                  onPageChange={setProductPage}
+                />
               </div>
             </CardContent>
           </Card>
@@ -363,21 +487,67 @@ export function InventoryPage({
 
         <TabsContent value="historial">
           <Card className="border-border/50 overflow-hidden">
-            <CardContent className="p-0">
+            <CardContent className="p-0 space-y-4">
+              <div className="px-4 pt-4">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar en historial..."
+                    value={movementSearch}
+                    onChange={(e) => handleMovementSearch(e.target.value)}
+                    className="pl-9 h-10"
+                  />
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Producto</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Cantidad</TableHead>
-                      <TableHead>Usuario</TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Fecha"
+                          sortKey="date"
+                          sort={movementSort}
+                          onSort={handleMovementSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Producto"
+                          sortKey="product"
+                          sort={movementSort}
+                          onSort={handleMovementSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Tipo"
+                          sortKey="type"
+                          sort={movementSort}
+                          onSort={handleMovementSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Cantidad"
+                          sortKey="quantity"
+                          sort={movementSort}
+                          onSort={handleMovementSort}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <SortableHeader
+                          label="Usuario"
+                          sortKey="user"
+                          sort={movementSort}
+                          onSort={handleMovementSort}
+                        />
+                      </TableHead>
                       <TableHead>Notas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movements.length === 0 ? (
+                    {paginatedMovements.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-32 text-center">
                           <History className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
@@ -387,7 +557,7 @@ export function InventoryPage({
                         </TableCell>
                       </TableRow>
                     ) : (
-                      movements.map((movement) => (
+                      paginatedMovements.map((movement) => (
                         <TableRow key={movement.id}>
                           <TableCell className="text-sm whitespace-nowrap">
                             {new Date(movement.createdAt).toLocaleString("es-AR", {
@@ -433,6 +603,22 @@ export function InventoryPage({
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando{" "}
+                  <span className="font-medium text-foreground">
+                    {Math.min((movementPage - 1) * 10 + 1, movementTotalItems)}–
+                    {Math.min(movementPage * 10, movementTotalItems)}
+                  </span>{" "}
+                  de <span className="font-medium text-foreground">{movementTotalItems}</span> movimientos
+                </p>
+                <Pagination
+                  currentPage={movementPage}
+                  totalPages={movementTotalPages}
+                  onPageChange={setMovementPage}
+                />
               </div>
             </CardContent>
           </Card>

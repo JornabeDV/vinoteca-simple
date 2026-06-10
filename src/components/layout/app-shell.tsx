@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getBusinessById } from "@/lib/auth-actions";
 import { Header } from "./header";
 import { DesktopSidebar } from "./sidebar";
+import { TourClientWrapper } from "@/components/onboarding/tour-wrapper";
 import { redirect } from "next/navigation";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
@@ -23,9 +24,11 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main content area - offset on desktop */}
       <div className="lg:ml-72">
         <Header user={user as any} businessName={business?.name} />
-        <main className="p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
-        </main>
+        <TourClientWrapper>
+          <main className="p-4 sm:p-6 lg:p-8">
+            <div className="mx-auto max-w-7xl">{children}</div>
+          </main>
+        </TourClientWrapper>
       </div>
     </div>
   );

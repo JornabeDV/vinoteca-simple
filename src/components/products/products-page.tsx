@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Wine,
   Plus,
@@ -10,7 +10,6 @@ import {
   Archive,
   ArchiveRestore,
   Pencil,
-  ArrowUpDown,
   Trash2,
   Loader2,
 } from "lucide-react";
@@ -27,47 +26,60 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Pagination } from "@/components/ui/pagination";
+import { SortableHeader } from "@/components/ui/sortable-header";
+import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { archiveProduct, activateProduct, deleteProduct } from "@/lib/actions";
+import { ProductImportButton } from "./product-import-button";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function ProductsPage({ products }: { products: any[] }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [sortKey, setSortKey] = useState<string>("createdAt");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    const params = new URLSearchParams(searchParams);
-    if (value) params.set("search", value);
-    else params.delete("search");
-    router.push(`/productos?${params.toString()}`);
-  };
-
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
-
-  const sortedProducts = [...products].sort((a, b) => {
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-    if (typeof aVal === "string") {
-      return sortDir === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    }
-    if (typeof aVal === "number") {
-      return sortDir === "asc" ? aVal - bVal : bVal - aVal;
-    }
-    return 0;
+  const {
+    data: paginatedProducts,
+    currentPage,
+    totalPages,
+    totalItems,
+    sort,
+    searchQuery,
+    setCurrentPage,
+    handleSort,
+    handleSearch,
+  } = useDataTable({
+    data: products,
+    itemsPerPage: 10,
+    searchFn: (product, query) => {
+      const q = query.toLowerCase();
+      return (
+        product.name?.toLowerCase().includes(q) ||
+        product.brand?.toLowerCase().includes(q) ||
+        product.category?.toLowerCase().includes(q) ||
+        product.style?.toLowerCase().includes(q) ||
+        product.brand?.toLowerCase().includes(q)
+      );
+    },
+    sortFn: (a, b, sort: SortState) => {
+      const dir = sort.direction === "asc" ? 1 : -1;
+      switch (sort.key) {
+        case "name":
+          return (a.name || "").localeCompare(b.name || "") * dir;
+        case "brand":
+          return (a.brand || "").localeCompare(b.brand || "") * dir;
+        case "category":
+          return (a.category || "").localeCompare(b.category || "") * dir;
+        case "salePrice":
+          return (Number(a.salePrice) - Number(b.salePrice)) * dir;
+        case "currentStock":
+          return (Number(a.currentStock) - Number(b.currentStock)) * dir;
+        case "status":
+          return (a.status || "").localeCompare(b.status || "") * dir;
+        default:
+          return 0;
+      }
+    },
   });
 
   const handleArchive = async (id: string) => {
@@ -116,17 +128,20 @@ export function ProductsPage({ products }: { products: any[] }) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar productos..."
-            value={search}
+            value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-9 h-10"
           />
         </div>
-        <Link href="/productos/nuevo">
-          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2">
-            <Plus className="h-4 w-4" />
-            Nuevo Producto
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <ProductImportButton />
+          <Link href="/productos/nuevo" data-tour="productos-nuevo">
+            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
+              <Plus className="h-4 w-4" />
+              Nuevo Producto
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="border-border/50 overflow-hidden">
@@ -137,40 +152,58 @@ export function ProductsPage({ products }: { products: any[] }) {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[80px]">Imagen</TableHead>
                   <TableHead>
-                    <button
-                      onClick={() => handleSort("name")}
-                      className="flex items-center gap-1 hover:text-foreground"
-                    >
-                      Producto
-                      <ArrowUpDown className="h-3 w-3" />
-                    </button>
-                  </TableHead>
-                  <TableHead>Bodega</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>
-                    <button
-                      onClick={() => handleSort("salePrice")}
-                      className="flex items-center gap-1 hover:text-foreground"
-                    >
-                      Precio
-                      <ArrowUpDown className="h-3 w-3" />
-                    </button>
+                    <SortableHeader
+                      label="Producto"
+                      sortKey="name"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
                   </TableHead>
                   <TableHead>
-                    <button
-                      onClick={() => handleSort("currentStock")}
-                      className="flex items-center gap-1 hover:text-foreground"
-                    >
-                      Stock
-                      <ArrowUpDown className="h-3 w-3" />
-                    </button>
+                    <SortableHeader
+                      label="Marca"
+                      sortKey="brand"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
                   </TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>
+                    <SortableHeader
+                      label="Categoría"
+                      sortKey="category"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
+                  </TableHead>
+                  <TableHead>
+                    <SortableHeader
+                      label="Precio"
+                      sortKey="salePrice"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
+                  </TableHead>
+                  <TableHead>
+                    <SortableHeader
+                      label="Stock"
+                      sortKey="currentStock"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
+                  </TableHead>
+                  <TableHead>
+                    <SortableHeader
+                      label="Estado"
+                      sortKey="status"
+                      sort={sort}
+                      onSort={handleSort}
+                    />
+                  </TableHead>
                   <TableHead className="w-[140px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedProducts.length === 0 ? (
+                {paginatedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -182,7 +215,7 @@ export function ProductsPage({ products }: { products: any[] }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedProducts.map((product) => {
+                  paginatedProducts.map((product) => {
                     const isLoading = loadingId === product.id;
                     return (
                       <TableRow key={product.id}>
@@ -203,13 +236,13 @@ export function ProductsPage({ products }: { products: any[] }) {
                           <div className="flex flex-col">
                             <span className="font-medium">{product.name}</span>
                             <span className="text-xs text-muted-foreground">
-                              {product.varietal}
-                              {product.vintage && ` · ${product.vintage}`}
+                              {product.style}
+                              {product.year && ` · ${product.year}`}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {product.winery}
+                          {product.brand}
                         </TableCell>
                         <TableCell className="text-sm">
                           {product.category}
@@ -297,7 +330,7 @@ export function ProductsPage({ products }: { products: any[] }) {
 
                             <ConfirmDialog
                               title="Eliminar producto"
-                              description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente? Esta acción también eliminará sus registros de ventas e inventario asociados.`}
+                              description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
                               confirmText="Eliminar"
                               cancelText="Cancelar"
                               variant="destructive"
@@ -321,6 +354,22 @@ export function ProductsPage({ products }: { products: any[] }) {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              Mostrando{" "}
+              <span className="font-medium text-foreground">
+                {Math.min((currentPage - 1) * 10 + 1, totalItems)}–
+                {Math.min(currentPage * 10, totalItems)}
+              </span>{" "}
+              de <span className="font-medium text-foreground">{totalItems}</span> productos
+            </p>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </CardContent>
       </Card>

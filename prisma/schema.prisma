@@ -16,6 +16,14 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum ProductType {
+  WINE
+  BEER
+  SPIRIT
+  WATER
+  OTHER
+}
+
 enum MovementType {
   PURCHASE
   SALE
@@ -31,7 +39,7 @@ model Business {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   users      User[]
-  products   WineProduct[]
+  products   Product[]
   sales      Sale[]
   inventoryMovements InventoryMovement[]
 
@@ -57,14 +65,15 @@ model User {
   @@map("users")
 }
 
-model WineProduct {
+model Product {
   id            String        @id @default(uuid())
   name          String
-  winery        String
+  brand         String
   category      String
-  varietal      String
-  vintage       Int?
+  style         String
+  year          Int?
   description   String?
+  productType   ProductType   @default(WINE) @map("product_type")
   costPrice     Decimal       @map("cost_price") @db.Decimal(10, 2)
   salePrice     Decimal       @map("sale_price") @db.Decimal(10, 2)
   currentStock  Int           @default(0) @map("current_stock")
@@ -81,10 +90,11 @@ model WineProduct {
 
   @@index([status])
   @@index([name])
-  @@index([winery])
+  @@index([brand])
   @@index([category])
+  @@index([productType])
   @@index([businessId])
-  @@map("wine_products")
+  @@map("products")
 }
 
 model InventoryMovement {
@@ -97,7 +107,7 @@ model InventoryMovement {
   notes         String?
   createdAt     DateTime     @default(now()) @map("created_at")
 
-  product       WineProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -135,7 +145,7 @@ model SaleItem {
   totalPrice    Decimal     @map("total_price") @db.Decimal(10, 2)
 
   sale          Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product       WineProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([saleId])
   @@index([productId])

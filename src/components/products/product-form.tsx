@@ -2,24 +2,53 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Wine, Camera } from "lucide-react";
+import { Loader2, Wine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { createProduct, updateProduct } from "@/lib/actions";
+import { ProductType } from "@prisma/client";
 
 interface ProductFormProps {
   product?: any;
 }
 
+const PRODUCT_TYPE_LABELS: Record<ProductType, { brand: string; style: string; year?: string }> = {
+  WINE: { brand: "Bodega", style: "Varietal", year: "Añada" },
+  BEER: { brand: "Marca", style: "Estilo" },
+  SPIRIT: { brand: "Destilería", style: "Tipo" },
+  WATER: { brand: "Marca", style: "Tipo" },
+  OTHER: { brand: "Marca / Productor", style: "Tipo / Estilo", year: "Año" },
+};
+
+const PRODUCT_TYPE_OPTIONS = [
+  { value: ProductType.WINE, label: "Vino" },
+  { value: ProductType.BEER, label: "Cerveza" },
+  { value: ProductType.SPIRIT, label: "Destilado" },
+  { value: ProductType.WATER, label: "Agua" },
+  { value: ProductType.OTHER, label: "Otro" },
+];
+
 export function ProductForm({ product }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(product?.image || "");
+  const [productType, setProductType] = useState<ProductType>(
+    product?.productType || ProductType.WINE
+  );
+
+  const labels = PRODUCT_TYPE_LABELS[productType];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,13 +57,14 @@ export function ProductForm({ product }: ProductFormProps) {
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get("name") as string,
-      winery: formData.get("winery") as string,
+      brand: formData.get("brand") as string,
       category: formData.get("category") as string,
-      varietal: formData.get("varietal") as string,
-      vintage: formData.get("vintage")
-        ? parseInt(formData.get("vintage") as string)
+      style: formData.get("style") as string,
+      year: formData.get("year")
+        ? parseInt(formData.get("year") as string)
         : null,
       description: (formData.get("description") as string) || undefined,
+      productType,
       costPrice: parseFloat(formData.get("costPrice") as string),
       salePrice: parseFloat(formData.get("salePrice") as string),
       currentStock: parseInt(formData.get("currentStock") as string) || 0,
@@ -80,14 +110,24 @@ export function ProductForm({ product }: ProductFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="winery">Bodega *</Label>
-                  <Input
-                    id="winery"
-                    name="winery"
-                    defaultValue={product?.winery}
-                    placeholder="Ej: Trapiche"
-                    required
-                  />
+                  <Label>Tipo de producto *</Label>
+                  <Select
+                    value={productType}
+                    onValueChange={(v) => setProductType(v as ProductType)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar tipo">
+                        {PRODUCT_TYPE_OPTIONS.find((opt) => opt.value === productType)?.label}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRODUCT_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Categoría *</Label>
@@ -100,22 +140,32 @@ export function ProductForm({ product }: ProductFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="varietal">Varietal *</Label>
+                  <Label htmlFor="brand">{labels.brand} *</Label>
                   <Input
-                    id="varietal"
-                    name="varietal"
-                    defaultValue={product?.varietal}
+                    id="brand"
+                    name="brand"
+                    defaultValue={product?.brand}
+                    placeholder="Ej: Trapiche"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="style">{labels.style} *</Label>
+                  <Input
+                    id="style"
+                    name="style"
+                    defaultValue={product?.style}
                     placeholder="Ej: Malbec"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vintage">Añada</Label>
+                  <Label htmlFor="year">{labels.year || "Año"}</Label>
                   <Input
-                    id="vintage"
-                    name="vintage"
+                    id="year"
+                    name="year"
                     type="number"
-                    defaultValue={product?.vintage || ""}
+                    defaultValue={product?.year || ""}
                     placeholder="2020"
                   />
                 </div>
@@ -125,7 +175,7 @@ export function ProductForm({ product }: ProductFormProps) {
                     id="description"
                     name="description"
                     defaultValue={product?.description || ""}
-                    placeholder="Notas de cata, descripción del vino..."
+                    placeholder="Notas de cata, descripción del producto..."
                     rows={3}
                   />
                 </div>

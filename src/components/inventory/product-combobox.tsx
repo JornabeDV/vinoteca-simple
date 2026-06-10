@@ -21,8 +21,8 @@ import {
 interface Product {
   id: string;
   name: string;
-  winery: string;
-  varietal: string;
+  brand: string;
+  style: string;
   currentStock: number;
 }
 
@@ -74,15 +74,15 @@ export function ProductCombobox({
             if (!product) return 0;
             const haystack = [
               product.name,
-              product.winery,
-              product.varietal,
+              product.brand,
+              product.style,
             ]
               .join(" ")
               .toLowerCase();
             return haystack.includes(search.toLowerCase()) ? 1 : 0;
           }}
         >
-          <CommandInput placeholder="Nombre, bodega o varietal..." />
+          <CommandInput placeholder="Nombre, marca o estilo..." />
           <CommandList>
             <CommandEmpty>No se encontraron productos.</CommandEmpty>
             <CommandGroup>
@@ -101,7 +101,7 @@ export function ProductCombobox({
                       {product.name}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {product.winery} · {product.varietal} ·{" "}
+                      {product.brand} · {product.style} ·{" "}
                       {product.currentStock} u.
                     </span>
                   </div>
