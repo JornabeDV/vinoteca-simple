@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -12,12 +12,23 @@ import {
   Wine,
   Check,
   Loader2,
+  Package,
+  ArrowRight,
+  History,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { createSale } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
@@ -26,45 +37,86 @@ interface CartItem {
   productId: string;
   name: string;
   brand: string;
+  style: string;
   salePrice: number;
   quantity: number;
   availableStock: number;
+  image?: string;
 }
 
 export function NewSalePage({ products }: { products: any[] }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const activeProducts = products.filter(
-    (p) =>
-      p.status === "ACTIVE" &&
-      p.currentStock > 0 &&
-      !cart.find((c) => c.productId === p.id) &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.brand.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Extract unique categories for filter chips
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    products.forEach((p) => {
+      if (p.status === "ACTIVE" && p.currentStock > 0) {
+        cats.add(p.category);
+      }
+    });
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      if (p.status !== "ACTIVE" || p.currentStock <= 0) return false;
+      if (selectedCategory && p.category !== selectedCategory) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          p.name?.toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q) ||
+          p.style?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [products, selectedCategory, search]);
+
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
 
   function addToCart(product: any) {
-    setCart([
-      ...cart,
-      {
-        productId: product.id,
-        name: product.name,
-        brand: product.brand,
-        salePrice: Number(product.salePrice),
-        quantity: 1,
-        availableStock: product.currentStock,
-      },
-    ]);
-    setSearch("");
+    setCart((prev) => {
+      const existing = prev.find((item) => item.productId === product.id);
+      if (existing) {
+        if (existing.quantity >= existing.availableStock) {
+          toast.error("Stock insuficiente");
+          return prev;
+        }
+        return prev.map((item) =>
+          item.productId === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          name: product.name,
+          brand: product.brand,
+          style: product.style,
+          salePrice: Number(product.salePrice),
+          quantity: 1,
+          availableStock: product.currentStock,
+          image: product.image,
+        },
+      ];
+    });
   }
 
   function updateQuantity(productId: string, delta: number) {
-    setCart(
-      cart.map((item) => {
+    setCart((prev) =>
+      prev.map((item) => {
         if (item.productId === productId) {
           const newQty = item.quantity + delta;
           if (newQty < 1) return item;
@@ -80,10 +132,12 @@ export function NewSalePage({ products }: { products: any[] }) {
   }
 
   function removeFromCart(productId: string) {
-    setCart(cart.filter((item) => item.productId !== productId));
+    setCart((prev) => prev.filter((item) => item.productId !== productId));
   }
 
-  const total = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  function clearCart() {
+    setCart([]);
+  }
 
   async function handleSubmit() {
     if (cart.length === 0) {
@@ -91,7 +145,7 @@ export function NewSalePage({ products }: { products: any[] }) {
       return;
     }
     if (!session?.user?.id) {
-      toast.error("Debes iniciar sesión");
+      toast.error("Debes iniciar sesion");
       return;
     }
 
@@ -114,184 +168,340 @@ export function NewSalePage({ products }: { products: any[] }) {
     }
   }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Product Selection */}
-      <div className="lg:col-span-2 space-y-4">
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-heading text-lg flex items-center gap-2">
-              <Search className="h-5 w-5 text-[#7b1f3a]" />
-              Buscar Productos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Input
-              placeholder="Escribe para buscar vinos..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11"
-            />
-            {search && (
-              <div className="mt-3 space-y-2 max-h-[300px] overflow-auto">
-                {activeProducts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">
-                    No se encontraron productos
+  // ─── Cart Panel Content (reused in desktop + mobile sheet) ───
+  const CartContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-auto px-4 py-2">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Tu carrito esta vacio
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Toca un producto para agregarlo
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {cart.map((item) => (
+              <div
+                key={item.productId}
+                className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="h-10 w-10 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <Wine className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.brand}
                   </p>
-                ) : (
-                  activeProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      onClick={() => addToCart(product)}
-                      className="w-full flex items-center justify-between rounded-lg border border-border/50 p-3 text-left hover:bg-accent transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                          <Wine className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {product.brand} · {product.style}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          {formatPrice(Number(product.salePrice))}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Stock: {product.currentStock}
-                        </p>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Cart */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-heading text-lg flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-[#7b1f3a]" />
-              Productos Seleccionados
-              {cart.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {cart.length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Busca y selecciona productos para la venta
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {cart.map((item) => (
-                  <div
-                    key={item.productId}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-border/50 p-3 sm:p-4 gap-3"
+                  <p className="text-sm font-semibold text-[#7b1f3a]">
+                    {formatPrice(item.salePrice * item.quantity)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => updateQuantity(item.productId, -1)}
+                    disabled={item.quantity <= 1}
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.brand}
-                      </p>
-                      <p className="text-sm font-semibold text-[#7b1f3a]">
-                        {formatPrice(item.salePrice)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 self-end sm:self-auto">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => updateQuantity(item.productId, -1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-6 sm:w-8 text-center font-medium text-sm">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => updateQuantity(item.productId, 1)}
-                          disabled={item.quantity >= item.availableStock}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => removeFromCart(item.productId)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-7 text-center text-sm font-medium">
+                    {item.quantity}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => updateQuantity(item.productId, 1)}
+                    disabled={item.quantity >= item.availableStock}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => removeFromCart(item.productId)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Summary */}
-      <div>
-        <Card className="border-border/50 sticky top-24">
-          <CardHeader>
-            <CardTitle className="font-heading text-lg">Resumen</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              {cart.map((item) => (
-                <div
-                  key={item.productId}
-                  className="flex justify-between text-sm"
+      <div className="border-t border-border/50 p-4 space-y-3 bg-card">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {cartCount} {cartCount === 1 ? "producto" : "productos"}
+          </span>
+          <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
+            {formatPrice(total)}
+          </span>
+        </div>
+        <Button
+          size="lg"
+          className="w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white h-12 text-base"
+          disabled={cart.length === 0 || isSubmitting}
+          onClick={handleSubmit}
+        >
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Check className="mr-2 h-5 w-5" />
+          )}
+          Confirmar Venta
+        </Button>
+        {cart.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground hover:text-destructive"
+            onClick={clearCart}
+            disabled={isSubmitting}
+          >
+            Cancelar venta
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8">
+      {/* ─── LEFT: Product Grid ─── */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Header */}
+        <div className="shrink-0 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-3 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar productos..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-12 text-base"
+                autoFocus
+              />
+            </div>
+            <Link
+              href="/ventas"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Historial</span>
+            </Link>
+          </div>
+
+          {/* Category chips */}
+          {categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  selectedCategory === null
+                    ? "bg-[#7b1f3a] text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                Todos
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() =>
+                    setSelectedCategory(cat === selectedCategory ? null : cat)
+                  }
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    selectedCategory === cat
+                      ? "bg-[#7b1f3a] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
                 >
-                  <span className="text-muted-foreground">
-                    {item.name} x{item.quantity}
-                  </span>
-                  <span className="font-medium">
-                    {formatPrice(item.salePrice * item.quantity)}
-                  </span>
-                </div>
+                  {cat}
+                </button>
               ))}
             </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="font-heading text-lg font-semibold">Total</span>
-              <span className="font-heading text-xl font-bold text-[#7b1f3a]">
-                {formatPrice(total)}
-              </span>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            {filteredProducts.length} productos disponibles
+          </p>
+        </div>
+
+        {/* Product Grid */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-4">
+          {filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <Package className="h-12 w-12 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">
+                No se encontraron productos
+              </p>
             </div>
-            <Button
-              size="xl"
-              className="w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
-              disabled={cart.length === 0 || isSubmitting}
-              onClick={handleSubmit}
-            >
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Confirmar Venta
-            </Button>
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+              {filteredProducts.map((product) => {
+                const inCart = cart.find((c) => c.productId === product.id);
+                const isLowStock =
+                  product.currentStock <= product.minStock;
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => addToCart(product)}
+                    className="group relative flex flex-col rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
+                  >
+                    {/* Image */}
+                    <div className="flex h-24 w-full items-center justify-center rounded-lg bg-muted mb-2 overflow-hidden">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Wine className="h-8 w-8 text-muted-foreground/40" />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight line-clamp-2">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {product.brand} {product.style ? `· ${product.style}` : ""}
+                      </p>
+                    </div>
+
+                    {/* Price & Stock */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+                      <span className="text-sm font-bold text-[#7b1f3a]">
+                        {formatPrice(Number(product.salePrice))}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {inCart && (
+                          <Badge
+                            variant="secondary"
+                            className="h-5 px-1.5 text-[10px] bg-[#7b1f3a]/10 text-[#7b1f3a]"
+                          >
+                            {inCart.quantity}
+                          </Badge>
+                        )}
+                        <span
+                          className={`text-[10px] font-medium ${
+                            isLowStock
+                              ? "text-amber-600"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {product.currentStock} u.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Low stock indicator */}
+                    {isLowStock && (
+                      <div className="absolute top-2 right-2">
+                        <Badge
+                          variant="outline"
+                          className="h-5 text-[9px] border-amber-200 bg-amber-50 text-amber-700"
+                        >
+                          Bajo
+                        </Badge>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── RIGHT: Cart (Desktop) ─── */}
+      <div className="hidden lg:flex w-[380px] flex-col border-l border-border/50 bg-card">
+        <div className="px-4 py-3 border-b border-border/50">
+          <h3 className="font-heading text-base font-semibold flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-[#7b1f3a]" />
+            Venta Actual
+            {cartCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {cartCount}
+              </Badge>
+            )}
+          </h3>
+        </div>
+        <CartContent />
+      </div>
+
+      {/* ─── MOBILE: Cart Bottom Bar + Sheet ─── */}
+      <div className="lg:hidden shrink-0">
+        {cart.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border/50 px-4 py-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <Sheet>
+                <SheetTrigger>
+                  <div className="inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-11 gap-2 px-3 border border-input bg-background hover:bg-accent hover:text-foreground cursor-pointer">
+                    <ShoppingCart className="h-4 w-4" />
+                    {cartCount}
+                  </div>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[80vh] p-0 flex flex-col">
+                  <SheetHeader className="px-4 py-3 border-b border-border/50">
+                    <SheetTitle className="flex items-center gap-2">
+                      <ShoppingCart className="h-4 w-4 text-[#7b1f3a]" />
+                      Venta Actual
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-hidden">
+                    <CartContent />
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground truncate">
+                  {cartCount} {cartCount === 1 ? "producto" : "productos"}
+                </p>
+                <p className="font-heading text-lg font-bold text-[#7b1f3a] truncate">
+                  {formatPrice(total)}
+                </p>
+              </div>
+
+              <Button
+                size="lg"
+                className="shrink-0 bg-[#7b1f3a] hover:bg-[#5a1530] text-white h-11 px-5"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Cobrar
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

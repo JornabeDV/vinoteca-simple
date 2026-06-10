@@ -121,9 +121,9 @@ export function SalesPage({ sales }: { sales: any[] }) {
             Exportar
           </Button>
           <Link href="/ventas/nueva" data-tour="ventas-nueva">
-            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Nueva Venta
+            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto h-12 px-6 text-base">
+              <ShoppingCart className="h-5 w-5" />
+              Vender
             </Button>
           </Link>
         </div>

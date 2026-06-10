@@ -8,7 +8,7 @@ export default withAuth(
 
     // Redirect employees away from dashboard
     if (path === "/" && token?.role !== "OWNER") {
-      return NextResponse.redirect(new URL("/ventas", req.url));
+      return NextResponse.redirect(new URL("/ventas/nueva", req.url));
     }
 
     // Protect admin-only routes

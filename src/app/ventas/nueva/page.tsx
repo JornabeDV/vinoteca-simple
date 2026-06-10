@@ -8,17 +8,7 @@ export default async function NewSale() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div>
-          <h2 className="font-heading text-2xl font-bold tracking-tight">
-            Nueva Venta
-          </h2>
-          <p className="text-muted-foreground">
-            Registra una venta rápidamente
-          </p>
-        </div>
-        <NewSalePage products={products} />
-      </div>
+      <NewSalePage products={products} />
     </AppShell>
   );
 }

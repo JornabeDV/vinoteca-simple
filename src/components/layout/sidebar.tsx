@@ -13,6 +13,7 @@ import {
   Menu,
   ChevronRight,
   Store,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,13 +22,15 @@ import { useState } from "react";
 
 const ownerNavigation = [
   { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
+  { name: "Vender", href: "/ventas/nueva", icon: ShoppingCart, tourId: "nav-ventas" },
+  { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
-  { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
 ];
 
 const employeeNavigation = [
-  { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
+  { name: "Vender", href: "/ventas/nueva", icon: ShoppingCart, tourId: "nav-ventas" },
+  { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
 ];
@@ -35,6 +38,21 @@ const employeeNavigation = [
 const adminNavigation = [
   { name: "Usuarios", href: "/usuarios", icon: Users, tourId: "nav-usuarios" as string | undefined },
 ];
+
+function isRouteActive(
+  pathname: string,
+  href: string,
+  allItems: { href: string }[]
+) {
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // Don't mark as active if a more specific nav item matches
+  return !allItems.some(
+    (other) =>
+      other.href !== href &&
+      (pathname === other.href || pathname.startsWith(`${other.href}/`))
+  );
+}
 
 export function DesktopSidebar({
   userRole,
@@ -76,8 +94,7 @@ export function DesktopSidebar({
         {/* Navigation */}
         <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = isRouteActive(pathname, item.href, navItems);
             return (
               <Link
                 key={item.name}
@@ -171,9 +188,7 @@ export function MobileSidebar({
 
           <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
             {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                pathname.startsWith(`${item.href}/`);
+              const isActive = isRouteActive(pathname, item.href, navItems);
               return (
                 <Link
                   key={item.name}
