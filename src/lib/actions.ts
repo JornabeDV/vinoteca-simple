@@ -359,7 +359,7 @@ export async function createSale(data: {
 
 // ─── Dashboard Actions ───
 
-export async function getDashboardData() {
+export async function getDashboardData(chartDays: number = 7) {
   const user = checkBusinessAccess(await getCurrentUser());
 
   const now = new Date();
@@ -368,10 +368,21 @@ export async function getDashboardData() {
   startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Comparative periods
+  const startOfYesterday = new Date(startOfDay);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const startOfLastWeek = new Date(startOfWeek);
+  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+  const startOfLastMonth = new Date(startOfMonth);
+  startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
+
   const [
     salesToday,
     salesWeek,
     salesMonth,
+    salesYesterday,
+    salesLastWeek,
+    salesLastMonth,
     totalProducts,
     lowStockProducts,
     recentSales,
@@ -388,6 +399,15 @@ export async function getDashboardData() {
     prisma.sale.findMany({
       where: { businessId: user.businessId, createdAt: { gte: startOfMonth } },
       include: { items: { include: { product: true } } },
+    }),
+    prisma.sale.findMany({
+      where: { businessId: user.businessId, createdAt: { gte: startOfYesterday, lt: startOfDay } },
+    }),
+    prisma.sale.findMany({
+      where: { businessId: user.businessId, createdAt: { gte: startOfLastWeek, lt: startOfWeek } },
+    }),
+    prisma.sale.findMany({
+      where: { businessId: user.businessId, createdAt: { gte: startOfLastMonth, lt: startOfMonth } },
     }),
     prisma.wineProduct.count({
       where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
@@ -431,28 +451,33 @@ export async function getDashboardData() {
         })
       : [];
 
-  const revenueToday = salesToday.reduce(
-    (sum, s) => sum + Number(s.totalAmount),
-    0
-  );
-  const revenueMonth = salesMonth.reduce(
-    (sum, s) => sum + Number(s.totalAmount),
-    0
-  );
-  const totalInventoryValue = inventoryValue.reduce(
-    (sum, p) => sum + Number(p.costPrice) * p.currentStock,
-    0
-  );
+  const revenueToday = salesToday.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const revenueWeek = salesWeek.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const revenueMonth = salesMonth.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const revenueYesterday = salesYesterday.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const revenueLastWeek = salesLastWeek.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const revenueLastMonth = salesLastMonth.reduce((sum, s) => sum + Number(s.totalAmount), 0);
 
-  // Sales trend for chart (last 7 days)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
+  const avgTicketToday = salesToday.length > 0 ? revenueToday / salesToday.length : 0;
+  const avgTicketYesterday = salesYesterday.length > 0 ? revenueYesterday / salesYesterday.length : 0;
+  const avgTicketMonth = salesMonth.length > 0 ? revenueMonth / salesMonth.length : 0;
+  const avgTicketLastMonth = salesLastMonth.length > 0 ? revenueLastMonth / salesLastMonth.length : 0;
+
+  // Helper to calc % change
+  const pctChange = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  // Sales trend for chart (dynamic days)
+  const trendDates = Array.from({ length: chartDays }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
+    d.setDate(d.getDate() - (chartDays - 1 - i));
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   });
 
   const salesTrend = await Promise.all(
-    last7Days.map(async (date) => {
+    trendDates.map(async (date) => {
       const nextDay = new Date(date);
       nextDay.setDate(date.getDate() + 1);
       const daySales = await prisma.sale.findMany({
@@ -462,7 +487,7 @@ export async function getDashboardData() {
         },
       });
       return {
-        date: date.toLocaleDateString("es-AR", { weekday: "short" }),
+        date: date.toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
         sales: daySales.length,
         revenue: daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0),
       };
@@ -473,14 +498,25 @@ export async function getDashboardData() {
     salesToday: {
       count: salesToday.length,
       revenue: revenueToday,
+      change: pctChange(revenueToday, revenueYesterday),
     },
-    salesWeek: salesWeek.length,
+    salesWeek: {
+      count: salesWeek.length,
+      revenue: revenueWeek,
+      change: pctChange(revenueWeek, revenueLastWeek),
+    },
     salesMonth: {
       count: salesMonth.length,
       revenue: revenueMonth,
+      change: pctChange(revenueMonth, revenueLastMonth),
+    },
+    avgTicket: {
+      today: avgTicketToday,
+      month: avgTicketMonth,
+      change: pctChange(avgTicketMonth, avgTicketLastMonth),
     },
     totalProducts,
-    totalInventoryValue,
+    totalInventoryValue: inventoryValue.reduce((sum, p) => sum + Number(p.costPrice) * p.currentStock, 0),
     lowStockProducts,
     recentSales,
     topProducts: topProducts.map((tp) => ({

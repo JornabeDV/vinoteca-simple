@@ -6,18 +6,24 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { getDashboardData } from "@/lib/actions";
 import { LandingPage } from "@/components/landing/landing-page";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ chart?: string }>;
+}) {
   const user = await getCurrentUser();
 
   if (!user) {
     return <LandingPage />;
   }
 
-  const data = await getDashboardData();
+  const { chart } = await searchParams;
+  const chartDays = chart === "30" ? 30 : chart === "365" ? 365 : 7;
+  const data = await getDashboardData(chartDays);
 
   return (
     <AppShell>
-      <DashboardPage data={data} />
+      <DashboardPage data={data} chartDays={chartDays} />
     </AppShell>
   );
 }

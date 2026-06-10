@@ -6,6 +6,7 @@ import { Loader2, Wine, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -138,27 +139,21 @@ export function ProductForm({ product }: ProductFormProps) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="costPrice">Precio de Costo *</Label>
-                  <Input
+                  <MoneyInput
                     id="costPrice"
                     name="costPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    defaultValue={product?.costPrice || ""}
-                    placeholder="0.00"
+                    defaultValue={product?.costPrice}
+                    placeholder="0,00"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="salePrice">Precio de Venta *</Label>
-                  <Input
+                  <MoneyInput
                     id="salePrice"
                     name="salePrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    defaultValue={product?.salePrice || ""}
-                    placeholder="0.00"
+                    defaultValue={product?.salePrice}
+                    placeholder="0,00"
                     required
                   />
                 </div>

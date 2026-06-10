@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -10,16 +12,20 @@ import {
   Wine,
   AlertTriangle,
   ArrowUpRight,
+  BarChart3,
+  Receipt,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SalesChart } from "./sales-chart";
 import { formatPrice } from "@/lib/utils";
 
 interface DashboardData {
-  salesToday: { count: number; revenue: number };
-  salesWeek: number;
-  salesMonth: { count: number; revenue: number };
+  salesToday: { count: number; revenue: number; change: number };
+  salesWeek: { count: number; revenue: number; change: number };
+  salesMonth: { count: number; revenue: number; change: number };
+  avgTicket: { today: number; month: number; change: number };
   totalProducts: number;
   totalInventoryValue: number;
   lowStockProducts: any[];
@@ -28,7 +34,22 @@ interface DashboardData {
   salesTrend: { date: string; sales: number; revenue: number }[];
 }
 
-export function DashboardPage({ data }: { data: DashboardData }) {
+export function DashboardPage({
+  data,
+  chartDays,
+}: {
+  data: DashboardData;
+  chartDays: number;
+}) {
+  const router = useRouter();
+  const [chartMode, setChartMode] = useState<"revenue" | "sales">("revenue");
+
+  const timeFilters = [
+    { label: "7 días", value: 7 },
+    { label: "30 días", value: 30 },
+    { label: "1 año", value: 365 },
+  ];
+
   return (
     <div className="space-y-8">
       {/* KPI Cards */}
@@ -36,28 +57,30 @@ export function DashboardPage({ data }: { data: DashboardData }) {
         <KpiCard
           title="Ventas Hoy"
           value={data.salesToday.count.toString()}
-          subtitle={`${formatPrice(data.salesToday.revenue)} en ingresos`}
+          revenue={data.salesToday.revenue}
+          change={data.salesToday.change}
           icon={ShoppingBag}
-          trend="up"
         />
         <KpiCard
           title="Ventas Esta Semana"
-          value={data.salesWeek.toString()}
-          subtitle="transacciones"
+          value={formatPrice(data.salesWeek.revenue)}
+          subtitle={`${data.salesWeek.count} transacciones`}
+          change={data.salesWeek.change}
           icon={TrendingUp}
         />
         <KpiCard
           title="Ventas Este Mes"
-          value={data.salesMonth.count.toString()}
-          subtitle={`${formatPrice(data.salesMonth.revenue)} en ingresos`}
+          value={formatPrice(data.salesMonth.revenue)}
+          subtitle={`${data.salesMonth.count} transacciones`}
+          change={data.salesMonth.change}
           icon={DollarSign}
-          trend="up"
         />
         <KpiCard
-          title="Productos Activos"
-          value={data.totalProducts.toString()}
-          subtitle={`${formatPrice(data.totalInventoryValue)} en stock`}
-          icon={Package}
+          title="Ticket Promedio"
+          value={formatPrice(data.avgTicket.month)}
+          subtitle={`Hoy: ${formatPrice(data.avgTicket.today)}`}
+          change={data.avgTicket.change}
+          icon={Receipt}
         />
       </div>
 
@@ -65,10 +88,49 @@ export function DashboardPage({ data }: { data: DashboardData }) {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 border-border/50">
           <CardHeader className="pb-2">
-            <CardTitle className="font-heading text-lg">Tendencia de Ventas</CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle className="font-heading text-lg">Tendencia de Ventas</CardTitle>
+              <div className="flex items-center gap-2">
+                {/* Time filters */}
+                <div className="flex items-center bg-muted rounded-lg p-0.5">
+                  {timeFilters.map((f) => (
+                    <Button
+                      key={f.value}
+                      variant={chartDays === f.value ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => router.push(`/?chart=${f.value}`)}
+                    >
+                      {f.label}
+                    </Button>
+                  ))}
+                </div>
+                {/* Mode toggle */}
+                <div className="flex items-center bg-muted rounded-lg p-0.5">
+                  <Button
+                    variant={chartMode === "revenue" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setChartMode("revenue")}
+                  >
+                    <DollarSign className="h-3 w-3" />
+                    Ingresos
+                  </Button>
+                  <Button
+                    variant={chartMode === "sales" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setChartMode("sales")}
+                  >
+                    <BarChart3 className="h-3 w-3" />
+                    Cantidad
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <SalesChart data={data.salesTrend} />
+            <SalesChart data={data.salesTrend} mode={chartMode} />
           </CardContent>
         </Card>
 
@@ -96,9 +158,7 @@ export function DashboardPage({ data }: { data: DashboardData }) {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.winery}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{product.winery}</p>
                     </div>
                     <Badge
                       variant="outline"
@@ -203,36 +263,57 @@ export function DashboardPage({ data }: { data: DashboardData }) {
 function KpiCard({
   title,
   value,
+  revenue,
   subtitle,
+  change,
   icon: Icon,
-  trend,
 }: {
   title: string;
   value: string;
-  subtitle: string;
+  revenue?: number;
+  subtitle?: string;
+  change: number;
   icon: React.ComponentType<{ className?: string }>;
-  trend?: "up" | "down";
 }) {
+  const isPositive = change >= 0;
+  const trendColor = isPositive ? "text-emerald-600" : "text-red-600";
+  const trendBg = isPositive ? "bg-emerald-50" : "bg-red-50";
+
   return (
     <Card className="border-border/50 transition-shadow hover:shadow-md">
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {title}
             </p>
-            <p className="font-heading text-3xl font-bold tracking-tight">{value}</p>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+            <p className="font-heading text-2xl sm:text-3xl font-bold tracking-tight truncate">
+              {value}
+            </p>
+            {revenue !== undefined && (
+              <p className="text-xs text-muted-foreground">
+                {formatPrice(revenue)} en ingresos
+              </p>
+            )}
+            {subtitle && (
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            )}
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <span
+                className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${trendColor} ${trendBg}`}
+              >
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {isPositive ? "+" : ""}
+                {change}%
+              </span>
+              <span className="text-[10px] text-muted-foreground">vs período anterior</span>
+            </div>
           </div>
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              trend === "up"
-                ? "bg-emerald-50 text-emerald-600"
-                : trend === "down"
-                ? "bg-red-50 text-red-600"
-                : "bg-[#7b1f3a]/10 text-[#7b1f3a]"
-            }`}
-          >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7b1f3a]/10 text-[#7b1f3a] ml-3">
             <Icon className="h-5 w-5" />
           </div>
         </div>

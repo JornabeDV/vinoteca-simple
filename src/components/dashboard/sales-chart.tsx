@@ -12,9 +12,13 @@ import {
 
 export function SalesChart({
   data,
+  mode,
 }: {
   data: { date: string; sales: number; revenue: number }[];
+  mode: "revenue" | "sales";
 }) {
+  const isRevenue = mode === "revenue";
+
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -24,12 +28,16 @@ export function SalesChart({
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "#78716c" }}
+            tick={{ fontSize: 11, fill: "#78716c" }}
+            interval="preserveStartEnd"
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "#78716c" }}
+            tick={{ fontSize: 11, fill: "#78716c" }}
+            tickFormatter={(value) =>
+              isRevenue ? formatCurrency(Number(value)) : String(value)
+            }
           />
           <Tooltip
             contentStyle={{
@@ -37,13 +45,16 @@ export function SalesChart({
               border: "1px solid #e7e5e4",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
             }}
-            formatter={(value, name) => [
-              name === "revenue" ? `$${Number(value).toLocaleString("es-AR")}` : String(value),
-              name === "revenue" ? "Ingresos" : "Ventas",
+            formatter={(value) => [
+              isRevenue
+                ? `$${Number(value).toLocaleString("es-AR")}`
+                : String(value),
+              isRevenue ? "Ingresos" : "Ventas",
             ]}
+            labelFormatter={(label) => label}
           />
           <Bar
-            dataKey="sales"
+            dataKey={isRevenue ? "revenue" : "sales"}
             fill="#7b1f3a"
             radius={[4, 4, 0, 0]}
             maxBarSize={40}
@@ -52,4 +63,10 @@ export function SalesChart({
       </ResponsiveContainer>
     </div>
   );
+}
+
+function formatCurrency(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
+  return String(value);
 }
