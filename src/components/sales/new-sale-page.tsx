@@ -212,8 +212,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
+                    size="icon-sm"
                     onClick={() => updateQuantity(item.productId, -1)}
                     disabled={item.quantity <= 1}
                   >
@@ -224,8 +223,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                   </span>
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
+                    size="icon-sm"
                     onClick={() => updateQuantity(item.productId, 1)}
                     disabled={item.quantity >= item.availableStock}
                   >
@@ -234,8 +232,8 @@ export function NewSalePage({ products }: { products: any[] }) {
                 </div>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-destructive shrink-0"
                   onClick={() => removeFromCart(item.productId)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -257,7 +255,7 @@ export function NewSalePage({ products }: { products: any[] }) {
         </div>
         <Button
           size="lg"
-          className="w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white h-12 text-base"
+          className="w-full"
           disabled={cart.length === 0 || isSubmitting}
           onClick={handleSubmit}
         >
@@ -271,7 +269,7 @@ export function NewSalePage({ products }: { products: any[] }) {
         {cart.length > 0 && (
           <Button
             variant="ghost"
-            size="sm"
+            size="lg"
             className="w-full text-muted-foreground hover:text-destructive"
             onClick={clearCart}
             disabled={isSubmitting}

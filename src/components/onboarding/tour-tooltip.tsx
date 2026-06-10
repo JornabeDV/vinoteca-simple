@@ -79,7 +79,7 @@ export function TourTooltip({ top, left, placement, visible }: TourTooltipProps)
                 variant="ghost"
                 size="sm"
                 onClick={prevStep}
-                className="h-8 gap-1 text-xs"
+                className="gap-1 text-xs"
               >
                 <ArrowLeft className="h-3 w-3" />
                 Anterior
@@ -90,7 +90,7 @@ export function TourTooltip({ top, left, placement, visible }: TourTooltipProps)
               <Button
                 size="sm"
                 onClick={closeTour}
-                className="h-8 gap-1 text-xs bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+                className="gap-1 text-xs bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
               >
                 Finalizar
                 <Sparkles className="h-3 w-3" />

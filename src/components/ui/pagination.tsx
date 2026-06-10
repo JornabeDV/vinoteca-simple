@@ -50,7 +50,6 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
@@ -68,7 +67,7 @@ export function Pagination({
             variant={currentPage === page ? "default" : "outline"}
             size="sm"
             className={cn(
-              "h-8 min-w-[32px] px-2.5 text-sm",
+              "min-w-[32px] px-2.5 text-sm",
               currentPage === page && "bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
             )}
             onClick={() => onPageChange(page)}
@@ -81,7 +80,6 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >

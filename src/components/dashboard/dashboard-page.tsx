@@ -98,7 +98,7 @@ export function DashboardPage({
                       key={f.value}
                       variant={chartDays === f.value ? "secondary" : "ghost"}
                       size="sm"
-                      className="h-7 text-xs px-2 sm:px-3"
+                      className="text-xs px-2 sm:px-3"
                       onClick={() => router.push(`/?chart=${f.value}`)}
                     >
                       {f.label}
@@ -110,7 +110,7 @@ export function DashboardPage({
                   <Button
                     variant={chartMode === "revenue" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 text-xs gap-1 px-2 sm:px-3"
+                    className="text-xs gap-1 px-2 sm:px-3"
                     onClick={() => setChartMode("revenue")}
                     aria-label="Ingresos"
                     title="Ingresos"
@@ -121,7 +121,7 @@ export function DashboardPage({
                   <Button
                     variant={chartMode === "sales" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 text-xs gap-1 px-2 sm:px-3"
+                    className="text-xs gap-1 px-2 sm:px-3"
                     onClick={() => setChartMode("sales")}
                     aria-label="Cantidad"
                     title="Cantidad"

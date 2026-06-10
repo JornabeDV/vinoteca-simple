@@ -27,6 +27,12 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { Pagination } from "@/components/ui/pagination";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
@@ -334,75 +340,97 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                         </TableCell>
                         {isOwner && (
                           <TableCell>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => router.push(`/productos/editar/${product.id}`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-
-                              {product.status === "ACTIVE" ? (
-                                <ConfirmDialog
-                                  title="Archivar producto"
-                                  description={`¿Estás seguro de que querés archivar "${product.name}"? Podés volver a activarlo después.`}
-                                  confirmText="Archivar"
-                                  cancelText="Cancelar"
-                                  variant="default"
-                                  isLoading={isLoading}
-                                  onConfirm={() => handleArchive(product.id)}
-                                  trigger={
+                            <TooltipProvider delayDuration={200}>
+                              <div className="flex items-center justify-end gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                      className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                      onClick={() => router.push(`/productos/editar/${product.id}`)}
                                     >
-                                      <Archive className="h-4 w-4" />
+                                      <Pencil className="h-4 w-4" />
                                     </Button>
-                                  }
-                                />
-                              ) : (
-                                <ConfirmDialog
-                                  title="Activar producto"
-                                  description={`¿Querés volver a activar "${product.name}"?`}
-                                  confirmText="Activar"
-                                  cancelText="Cancelar"
-                                  variant="default"
-                                  isLoading={isLoading}
-                                  onConfirm={() => handleActivate(product.id)}
-                                  trigger={
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
-                                    >
-                                      <ArchiveRestore className="h-4 w-4" />
-                                    </Button>
-                                  }
-                                />
-                              )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>Editar producto</TooltipContent>
+                                </Tooltip>
 
-                              <ConfirmDialog
-                                title="Eliminar producto"
-                                description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
-                                confirmText="Eliminar"
-                                cancelText="Cancelar"
-                                variant="destructive"
-                                isLoading={isLoading}
-                                onConfirm={() => handleDelete(product.id)}
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                            </div>
+                                {product.status === "ACTIVE" ? (
+                                  <ConfirmDialog
+                                    title="Archivar producto"
+                                    description={`¿Estás seguro de que querés archivar "${product.name}"? Podés volver a activarlo después.`}
+                                    confirmText="Archivar"
+                                    cancelText="Cancelar"
+                                    variant="default"
+                                    isLoading={isLoading}
+                                    onConfirm={() => handleArchive(product.id)}
+                                    trigger={
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground cursor-pointer hover:text-amber-600"
+                                          >
+                                            <Archive className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Archivar producto</TooltipContent>
+                                      </Tooltip>
+                                    }
+                                  />
+                                ) : (
+                                  <ConfirmDialog
+                                    title="Activar producto"
+                                    description={`¿Querés volver a activar "${product.name}"?`}
+                                    confirmText="Activar"
+                                    cancelText="Cancelar"
+                                    variant="default"
+                                    isLoading={isLoading}
+                                    onConfirm={() => handleActivate(product.id)}
+                                    trigger={
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground cursor-pointer hover:text-emerald-600"
+                                          >
+                                            <ArchiveRestore className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Activar producto</TooltipContent>
+                                      </Tooltip>
+                                    }
+                                  />
+                                )}
+
+                                <ConfirmDialog
+                                  title="Eliminar producto"
+                                  description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
+                                  confirmText="Eliminar"
+                                  cancelText="Cancelar"
+                                  variant="destructive"
+                                  isLoading={isLoading}
+                                  onConfirm={() => handleDelete(product.id)}
+                                  trigger={
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="text-muted-foreground cursor-pointer hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Eliminar permanentemente</TooltipContent>
+                                    </Tooltip>
+                                  }
+                                />
+                              </div>
+                            </TooltipProvider>
                           </TableCell>
                         )}
                       </TableRow>

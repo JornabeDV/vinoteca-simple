@@ -27,7 +27,8 @@ import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function SalesPage({ sales }: { sales: any[] }) {
+export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string }) {
+  const isOwner = userRole === "OWNER";
   const handleExport = () => {
     const headers = ["numero", "fecha", "usuario", "productos", "total"];
     const rows = sales.map((s) => [
@@ -111,17 +112,19 @@ export function SalesPage({ sales }: { sales: any[] }) {
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleExport}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
+          {isOwner && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          )}
           <Link href="/ventas/nueva" data-tour="ventas-nueva">
-            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto h-12 px-6 text-base">
+            <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto px-6">
               <ShoppingCart className="h-5 w-5" />
               Vender
             </Button>

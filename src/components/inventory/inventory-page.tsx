@@ -268,13 +268,29 @@ export function InventoryPage({
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           {isOwner && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger data-tour="inventario-ajustar">
-                <div className="group/button inline-flex shrink-0 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7b1f3a]/20 disabled:pointer-events-none disabled:opacity-50 h-12 gap-1.5 px-3 sm:h-9 sm:px-2.5 bg-[#7b1f3a] hover:bg-[#5a1530] text-white cursor-pointer">
-                  <Plus className="h-4 w-4" />
-                  Ajustar Stock
-                </div>
-              </DialogTrigger>
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleExport}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger
+                data-tour="inventario-ajustar"
+                render={
+                  <Button
+                    size="lg"
+                    className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajustar Stock
+                  </Button>
+                }
+              />
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="font-heading">Ajustar Stock</DialogTitle>
@@ -364,6 +380,7 @@ export function InventoryPage({
                 </form>
               </DialogContent>
             </Dialog>
+            </>
           )}
         </div>
       </div>
@@ -579,7 +596,7 @@ export function InventoryPage({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      className="text-xs text-muted-foreground hover:text-foreground"
                       onClick={clearProductFilter}
                     >
                       Limpiar filtro
