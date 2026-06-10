@@ -198,7 +198,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                 {cart.map((item) => (
                   <div
                     key={item.productId}
-                    className="flex items-center justify-between rounded-lg border border-border/50 p-4"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-border/50 p-3 sm:p-4 gap-3"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
@@ -209,24 +209,24 @@ export function NewSalePage({ products }: { products: any[] }) {
                         {formatPrice(item.salePrice)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 self-end sm:self-auto">
                       <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => updateQuantity(item.productId, -1)}
                           disabled={item.quantity <= 1}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">
+                        <span className="w-6 sm:w-8 text-center font-medium text-sm">
                           {item.quantity}
                         </span>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => updateQuantity(item.productId, 1)}
                           disabled={item.quantity >= item.availableStock}
                         >
@@ -236,7 +236,7 @@ export function NewSalePage({ products }: { products: any[] }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="h-7 w-7 sm:h-8 sm:w-8 text-destructive"
                         onClick={() => removeFromCart(item.productId)}
                       >
                         <Trash2 className="h-4 w-4" />
