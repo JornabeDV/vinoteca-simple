@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -17,8 +17,23 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "VinotecaOS — Sistema de Gestión para Vinotecas",
-  description:
-    "El sistema operativo para vinotecas. Gestiona productos, inventario, ventas y analíticas en una plataforma moderna y elegante.",
+  description: "La forma más simple de administrar tu vinoteca.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "VinotecaOS",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#7b1f3a",
 };
 
 export default function RootLayout({

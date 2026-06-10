@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   ChevronRight,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,13 @@ const adminNavigation = [
   { name: "Usuarios", href: "/usuarios", icon: Users },
 ];
 
-export function DesktopSidebar({ userRole }: { userRole?: string }) {
+export function DesktopSidebar({
+  userRole,
+  businessName,
+}: {
+  userRole?: string;
+  businessName?: string | null;
+}) {
   const pathname = usePathname();
 
   const navItems =
@@ -48,9 +55,14 @@ export function DesktopSidebar({ userRole }: { userRole?: string }) {
             </div>
             <div className="flex flex-col">
               <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                Vinoteca
-                <span className="text-[#7b1f3a]">OS</span>
+                Vinoteca{" "}
+                <span className="text-[#7b1f3a]">Simple</span>
               </span>
+              {businessName && (
+                <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                  {businessName}
+                </span>
+              )}
             </div>
           </Link>
         </div>
@@ -104,7 +116,13 @@ export function DesktopSidebar({ userRole }: { userRole?: string }) {
   );
 }
 
-export function MobileSidebar({ userRole }: { userRole?: string }) {
+export function MobileSidebar({
+  userRole,
+  businessName,
+}: {
+  userRole?: string;
+  businessName?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -131,9 +149,16 @@ export function MobileSidebar({ userRole }: { userRole?: string }) {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]">
                 <Wine className="h-5 w-5 text-white" />
               </div>
-              <span className="font-heading text-lg font-semibold tracking-tight">
-                Vinoteca<span className="text-[#7b1f3a]">OS</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="font-heading text-lg font-semibold tracking-tight">
+                  Vinoteca <span className="text-[#7b1f3a]">Simple</span>
+                </span>
+                {businessName && (
+                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                    {businessName}
+                  </span>
+                )}
+              </div>
             </Link>
           </div>
 

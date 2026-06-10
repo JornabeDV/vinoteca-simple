@@ -1,4 +1,4 @@
-# AGENTS.md — VinotecaOS
+# AGENTS.md — Vinoteca Simple
 
 Este documento contiene la información esencial para agentes de código que trabajen en el proyecto.
 
@@ -6,7 +6,7 @@ Este documento contiene la información esencial para agentes de código que tra
 
 ## 1. Arquitectura del Producto
 
-VinotecaOS sigue una arquitectura **monolito modular** sobre Next.js 15 con App Router:
+Vinoteca Simple sigue una arquitectura **monolito modular** sobre Next.js 15 con App Router:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -56,7 +56,7 @@ Dashboard (Home)
 Sidebar fija en desktop (72px), drawer en mobile.
 
 ```
-[Logo] VinotecaOS
+[Logo] Vinoteca Simple
 ├── Dashboard
 ├── Productos
 ├── Inventario

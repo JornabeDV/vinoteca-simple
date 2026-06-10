@@ -1,9 +1,9 @@
 import { AppShell } from "@/components/layout/app-shell";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
-import { Users, Plus, Shield, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { getCurrentUser } from "@/lib/session";
+import { getBusinessById } from "@/lib/auth-actions";
+import { Users, Shield, User, KeyRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -14,18 +14,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
+import { CreateEmployeeDialog } from "./create-employee-dialog";
 
 export default async function UsersPage() {
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
-  });
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.businessId) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center h-96">
+          <Users className="h-12 w-12 text-muted-foreground/40 mb-4" />
+          <p className="text-muted-foreground">
+            No pertenecés a ningún negocio.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const [users, business] = await Promise.all([
+    prisma.user.findMany({
+      where: { businessId: currentUser.businessId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    }),
+    getBusinessById(currentUser.businessId),
+  ]);
 
   return (
     <AppShell>
@@ -36,10 +56,32 @@ export default async function UsersPage() {
               Usuarios
             </h2>
             <p className="text-muted-foreground">
-              Gestiona los usuarios del sistema
+              Gestiona los usuarios de tu vinoteca
             </p>
           </div>
+          <CreateEmployeeDialog businessId={currentUser.businessId} />
         </div>
+
+        {business && (
+          <Card className="border-border/50 bg-muted/30">
+            <CardContent className="py-4 px-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]/10">
+                  <KeyRound className="h-4 w-4 text-[#7b1f3a]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Código de invitación</p>
+                  <p className="text-lg font-mono font-semibold tracking-wider text-[#7b1f3a]">
+                    {business.inviteCode}
+                  </p>
+                </div>
+                <p className="ml-auto text-xs text-muted-foreground hidden sm:block">
+                  Compartí este código para que empleados se unan
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-border/50 overflow-hidden">
           <CardContent className="p-0">

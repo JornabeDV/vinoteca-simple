@@ -68,6 +68,16 @@ async function main() {
   await prisma.inventoryMovement.deleteMany();
   await prisma.wineProduct.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.business.deleteMany();
+
+  // ─── NEGOCIO ───
+  const business = await prisma.business.create({
+    data: {
+      name: "Vinoteca Demo",
+      inviteCode: "DEMO2024",
+    },
+  });
+  console.log(`✅ Negocio creado: ${business.name} (código: ${business.inviteCode})`);
 
   // ─── USUARIOS ───
   const ownerPass = await bcrypt.hash("owner123", 12);
@@ -75,28 +85,31 @@ async function main() {
 
   const owner = await prisma.user.create({
     data: {
-      email: "owner@vinotecaos.com",
+      email: "owner@vinotecasimple.com",
       name: "Carlos Mendoza",
       password: ownerPass,
       role: UserRole.OWNER,
+      businessId: business.id,
     },
   });
 
   const employee1 = await prisma.user.create({
     data: {
-      email: "empleado@vinotecaos.com",
+      email: "empleado@vinotecasimple.com",
       name: "María López",
       password: empPass,
       role: UserRole.EMPLOYEE,
+      businessId: business.id,
     },
   });
 
   const employee2 = await prisma.user.create({
     data: {
-      email: "juan@vinotecaos.com",
+      email: "juan@vinotecasimple.com",
       name: "Juan Pérez",
       password: empPass,
       role: UserRole.EMPLOYEE,
+      businessId: business.id,
     },
   });
 
@@ -143,6 +156,7 @@ async function main() {
       currentStock,
       minStock,
       status: Math.random() > 0.9 ? ProductStatus.ARCHIVED : ProductStatus.ACTIVE,
+      businessId: business.id,
     });
   }
 
@@ -160,6 +174,7 @@ async function main() {
       data: {
         productId: p.id,
         userId: owner.id,
+        businessId: business.id,
         quantity: p.currentStock + randInt(5, 20),
         type: MovementType.PURCHASE,
         notes: "Stock inicial",
@@ -173,6 +188,7 @@ async function main() {
         data: {
           productId: p.id,
           userId: rand(users).id,
+          businessId: business.id,
           quantity: randInt(1, 5),
           type: MovementType.ADJUSTMENT,
           notes: "Ajuste de inventario",
@@ -223,6 +239,7 @@ async function main() {
       data: {
         saleNumber,
         userId: saleUser.id,
+        businessId: business.id,
         totalAmount,
         createdAt: saleDate,
         items: {
@@ -237,6 +254,7 @@ async function main() {
         data: {
           productId: item.productId,
           userId: saleUser.id,
+          businessId: business.id,
           quantity: -item.quantity,
           type: MovementType.SALE,
           notes: `Venta ${saleNumber}`,
@@ -256,7 +274,7 @@ async function main() {
 
   // ─── ALGUNAS COMPRAS RECIENTES PARA REPOBLAR STOCK ───
   const lowStockProducts = await prisma.wineProduct.findMany({
-    where: { status: ProductStatus.ACTIVE, currentStock: { lte: 5 } },
+    where: { businessId: business.id, status: ProductStatus.ACTIVE, currentStock: { lte: 5 } },
   });
 
   for (const p of lowStockProducts.slice(0, 8)) {
@@ -265,6 +283,7 @@ async function main() {
       data: {
         productId: p.id,
         userId: owner.id,
+        businessId: business.id,
         quantity: qty,
         type: MovementType.PURCHASE,
         notes: "Reabastecimiento",
@@ -280,9 +299,10 @@ async function main() {
 
   console.log("\n🎉 Seed masivo completado!");
   console.log("Credenciales:");
-  console.log("  owner@vinotecaos.com / owner123");
-  console.log("  empleado@vinotecaos.com / empleado123");
-  console.log("  juan@vinotecaos.com / empleado123");
+  console.log("  owner@vinotecasimple.com / owner123");
+  console.log("  empleado@vinotecasimple.com / empleado123");
+  console.log("  juan@vinotecasimple.com / empleado123");
+  console.log(`Código de invitación: ${business.inviteCode}`);
 }
 
 main()

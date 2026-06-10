@@ -2,12 +2,22 @@
 
 import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
-import { MovementType, ProductStatus } from "@prisma/client";
+import { MovementType, ProductStatus, Prisma } from "@prisma/client";
+import { serializeData } from "./serialization";
+import { getCurrentUser } from "./session";
+
+function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  if (!user) throw new Error("No autenticado");
+  if (!user.businessId) throw new Error("No perteneces a ningún negocio");
+  return user as typeof user & { businessId: string };
+}
 
 // ─── Product Actions ───
 
 export async function getProducts(search?: string, status?: ProductStatus) {
-  const where: any = {};
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const where: any = { businessId: user.businessId };
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
@@ -18,14 +28,20 @@ export async function getProducts(search?: string, status?: ProductStatus) {
   }
   if (status) where.status = status;
 
-  return prisma.wineProduct.findMany({
+  const products = await prisma.wineProduct.findMany({
     where,
     orderBy: { createdAt: "desc" },
   });
+  return serializeData(products);
 }
 
 export async function getProductById(id: string) {
-  return prisma.wineProduct.findUnique({ where: { id } });
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const product = await prisma.wineProduct.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  return serializeData(product);
 }
 
 export async function createProduct(data: {
@@ -41,11 +57,14 @@ export async function createProduct(data: {
   minStock: number;
   image?: string;
 }) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
   const product = await prisma.wineProduct.create({
     data: {
       ...data,
       costPrice: data.costPrice,
       salePrice: data.salePrice,
+      businessId: user.businessId,
     },
   });
 
@@ -53,7 +72,8 @@ export async function createProduct(data: {
     await prisma.inventoryMovement.create({
       data: {
         productId: product.id,
-        userId: "system",
+        userId: user.id,
+        businessId: user.businessId,
         quantity: data.currentStock,
         type: MovementType.PURCHASE,
         notes: "Stock inicial",
@@ -62,7 +82,7 @@ export async function createProduct(data: {
   }
 
   revalidatePath("/productos");
-  return product;
+  return serializeData(product);
 }
 
 export async function updateProduct(
@@ -81,39 +101,62 @@ export async function updateProduct(
     status?: ProductStatus;
   }
 ) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const existing = await prisma.wineProduct.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Producto no encontrado");
+
   const product = await prisma.wineProduct.update({
     where: { id },
     data,
   });
   revalidatePath("/productos");
-  return product;
+  return serializeData(product);
 }
 
 export async function archiveProduct(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const existing = await prisma.wineProduct.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Producto no encontrado");
+
   const product = await prisma.wineProduct.update({
     where: { id },
     data: { status: ProductStatus.ARCHIVED },
   });
   revalidatePath("/productos");
-  return product;
+  return serializeData(product);
 }
 
 export async function activateProduct(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const existing = await prisma.wineProduct.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Producto no encontrado");
+
   const product = await prisma.wineProduct.update({
     where: { id },
     data: { status: ProductStatus.ACTIVE },
   });
   revalidatePath("/productos");
-  return product;
+  return serializeData(product);
 }
 
 // ─── Inventory Actions ───
 
 export async function getInventoryMovements(productId?: string) {
-  const where: any = {};
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const where: any = { businessId: user.businessId };
   if (productId) where.productId = productId;
 
-  return prisma.inventoryMovement.findMany({
+  const movements = await prisma.inventoryMovement.findMany({
     where,
     include: {
       product: true,
@@ -122,6 +165,7 @@ export async function getInventoryMovements(productId?: string) {
     orderBy: { createdAt: "desc" },
     take: 200,
   });
+  return serializeData(movements);
 }
 
 export async function adjustStock(data: {
@@ -131,8 +175,10 @@ export async function adjustStock(data: {
   type: MovementType;
   notes?: string;
 }) {
-  const product = await prisma.wineProduct.findUnique({
-    where: { id: data.productId },
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const product = await prisma.wineProduct.findFirst({
+    where: { id: data.productId, businessId: user.businessId },
   });
 
   if (!product) throw new Error("Producto no encontrado");
@@ -145,6 +191,7 @@ export async function adjustStock(data: {
       data: {
         productId: data.productId,
         userId: data.userId,
+        businessId: user.businessId,
         quantity: data.quantity,
         type: data.type,
         notes: data.notes,
@@ -165,12 +212,14 @@ export async function adjustStock(data: {
 // ─── Sale Actions ───
 
 export async function getSales(search?: string) {
-  const where: any = {};
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const where: any = { businessId: user.businessId };
   if (search) {
     where.saleNumber = { contains: search, mode: "insensitive" };
   }
 
-  return prisma.sale.findMany({
+  const sales = await prisma.sale.findMany({
     where,
     include: {
       user: { select: { name: true, email: true } },
@@ -181,29 +230,42 @@ export async function getSales(search?: string) {
     orderBy: { createdAt: "desc" },
     take: 100,
   });
+  return serializeData(sales);
 }
 
-export async function getSaleById(id: string) {
-  return prisma.sale.findUnique({
-    where: { id },
-    include: {
-      user: { select: { name: true, email: true } },
-      items: {
-        include: { product: true },
-      },
-    },
+const saleWithDetailsArgs = {
+  include: {
+    user: { select: { name: true, email: true } as const },
+    items: { include: { product: true } },
+  },
+} satisfies Prisma.SaleFindFirstArgs;
+
+export type SaleWithDetails = Prisma.SaleGetPayload<typeof saleWithDetailsArgs>;
+
+export async function getSaleById(id: string): Promise<SaleWithDetails | null> {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const sale = await prisma.sale.findFirst({
+    where: { id, businessId: user.businessId },
+    ...saleWithDetailsArgs,
   });
+  return serializeData(sale);
 }
 
 export async function createSale(data: {
   userId: string;
   items: { productId: string; quantity: number }[];
 }) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
   const saleNumber = `V-${Date.now()}`;
   let totalAmount = 0;
 
   const products = await prisma.wineProduct.findMany({
-    where: { id: { in: data.items.map((i) => i.productId) } },
+    where: {
+      id: { in: data.items.map((i) => i.productId) },
+      businessId: user.businessId,
+    },
   });
 
   const productMap = new Map(products.map((p) => [p.id, p]));
@@ -222,6 +284,7 @@ export async function createSale(data: {
       data: {
         saleNumber,
         userId: data.userId,
+        businessId: user.businessId,
         totalAmount: 0,
       },
     });
@@ -251,6 +314,7 @@ export async function createSale(data: {
         data: {
           productId: item.productId,
           userId: data.userId,
+          businessId: user.businessId,
           quantity: -item.quantity,
           type: MovementType.SALE,
           notes: `Venta ${saleNumber}`,
@@ -272,12 +336,14 @@ export async function createSale(data: {
   revalidatePath("/inventario");
   revalidatePath("/productos");
   revalidatePath("/");
-  return sale;
+  return serializeData(sale);
 }
 
 // ─── Dashboard Actions ───
 
 export async function getDashboardData() {
+  const user = checkBusinessAccess(await getCurrentUser());
+
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfWeek = new Date(startOfDay);
@@ -295,19 +361,22 @@ export async function getDashboardData() {
     inventoryValue,
   ] = await Promise.all([
     prisma.sale.findMany({
-      where: { createdAt: { gte: startOfDay } },
+      where: { businessId: user.businessId, createdAt: { gte: startOfDay } },
       include: { items: { include: { product: true } } },
     }),
     prisma.sale.findMany({
-      where: { createdAt: { gte: startOfWeek } },
+      where: { businessId: user.businessId, createdAt: { gte: startOfWeek } },
     }),
     prisma.sale.findMany({
-      where: { createdAt: { gte: startOfMonth } },
+      where: { businessId: user.businessId, createdAt: { gte: startOfMonth } },
       include: { items: { include: { product: true } } },
     }),
-    prisma.wineProduct.count({ where: { status: ProductStatus.ACTIVE } }),
+    prisma.wineProduct.count({
+      where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
+    }),
     prisma.wineProduct.findMany({
       where: {
+        businessId: user.businessId,
         status: ProductStatus.ACTIVE,
         currentStock: { lte: prisma.wineProduct.fields.minStock },
       },
@@ -315,6 +384,7 @@ export async function getDashboardData() {
       take: 5,
     }),
     prisma.sale.findMany({
+      where: { businessId: user.businessId },
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
@@ -324,12 +394,13 @@ export async function getDashboardData() {
     }),
     prisma.saleItem.groupBy({
       by: ["productId"],
+      where: { sale: { businessId: user.businessId } },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
     prisma.wineProduct.findMany({
-      where: { status: ProductStatus.ACTIVE },
+      where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
       select: { currentStock: true, costPrice: true },
     }),
   ]);
@@ -338,7 +409,7 @@ export async function getDashboardData() {
   const topProductDetails =
     topProductIds.length > 0
       ? await prisma.wineProduct.findMany({
-          where: { id: { in: topProductIds } },
+          where: { businessId: user.businessId, id: { in: topProductIds } },
         })
       : [];
 
@@ -368,6 +439,7 @@ export async function getDashboardData() {
       nextDay.setDate(date.getDate() + 1);
       const daySales = await prisma.sale.findMany({
         where: {
+          businessId: user.businessId,
           createdAt: { gte: date, lt: nextDay },
         },
       });
@@ -379,7 +451,7 @@ export async function getDashboardData() {
     })
   );
 
-  return {
+  return serializeData({
     salesToday: {
       count: salesToday.length,
       revenue: revenueToday,
@@ -398,5 +470,5 @@ export async function getDashboardData() {
       product: topProductDetails.find((p) => p.id === tp.productId),
     })),
     salesTrend,
-  };
+  });
 }

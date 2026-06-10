@@ -1,43 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Wine, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Wine, Eye, EyeOff, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { registerEmployee } from "@/lib/auth-actions";
 
-export default function LoginPage() {
+export default function JoinPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    if (inviteCode.length < 4) {
+      toast.error("Ingresá un código de invitación válido");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error("Credenciales inválidas");
-      } else {
-        toast.success("¡Bienvenido!");
-        router.push("/");
-        router.refresh();
-      }
-    } catch {
-      toast.error("Error al iniciar sesión");
+      await registerEmployee({ name, email, password, inviteCode });
+      toast.success("¡Registro exitoso! Ahora podés iniciar sesión.");
+      router.push("/login");
+    } catch (error: any) {
+      toast.error(error.message || "Error al registrarse");
     } finally {
       setIsLoading(false);
     }
@@ -54,19 +63,31 @@ export default function LoginPage() {
             Vinoteca <span className="text-[#7b1f3a]">Simple</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            La forma más simple de administrar tu vinoteca.
+            Unite a una vinoteca como empleado.
           </p>
         </div>
 
         <Card className="border-border/50 shadow-xl shadow-black/5">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="font-heading text-xl">Iniciar sesión</CardTitle>
+            <CardTitle className="font-heading text-xl">Unirme como empleado</CardTitle>
             <CardDescription>
-              Ingresa tus credenciales para acceder
+              Necesitás un código de invitación de tu dueño
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre completo</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="María López"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -78,6 +99,21 @@ export default function LoginPage() {
                   required
                   className="h-11"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode">Código de invitación</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    placeholder="ABC12345"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    required
+                    className="h-11 pl-10 font-mono uppercase"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
@@ -104,6 +140,18 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
               <Button
                 type="submit"
                 className="w-full h-11 bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
@@ -112,23 +160,21 @@ export default function LoginPage() {
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                Iniciar sesión
+                Unirme
               </Button>
             </form>
 
-            <div className="mt-6 space-y-2 text-center text-sm">
-              <div>
-                <span className="text-muted-foreground">¿No tenés una vinoteca? </span>
-                <Link href="/registro" className="text-[#7b1f3a] hover:underline font-medium">
-                  Crear una cuenta de dueño
-                </Link>
-              </div>
-              <div>
-                <span className="text-muted-foreground">¿Tenés un código de invitación? </span>
-                <Link href="/unirse" className="text-[#7b1f3a] hover:underline font-medium">
-                  Unirme como empleado
-                </Link>
-              </div>
+            <div className="mt-4 text-center text-sm">
+              <span className="text-muted-foreground">¿Ya tenés una cuenta? </span>
+              <Link href="/login" className="text-[#7b1f3a] hover:underline font-medium">
+                Iniciar sesión
+              </Link>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              <span className="text-muted-foreground">¿Sos dueño? </span>
+              <Link href="/registro" className="text-[#7b1f3a] hover:underline font-medium">
+                Crear una vinoteca
+              </Link>
             </div>
           </CardContent>
         </Card>

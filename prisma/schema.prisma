@@ -23,6 +23,21 @@ enum MovementType {
   CORRECTION
 }
 
+model Business {
+  id         String   @id @default(uuid())
+  name       String
+  inviteCode String   @unique @map("invite_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  users      User[]
+  products   WineProduct[]
+  sales      Sale[]
+  inventoryMovements InventoryMovement[]
+
+  @@map("businesses")
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -30,12 +45,15 @@ model User {
   password      String
   role          UserRole  @default(EMPLOYEE)
   image         String?
+  businessId    String?   @map("business_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  business      Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sales         Sale[]
   inventoryMovements InventoryMovement[]
 
+  @@index([businessId])
   @@map("users")
 }
 
@@ -53,9 +71,11 @@ model WineProduct {
   minStock      Int           @default(0) @map("min_stock")
   image         String?
   status        ProductStatus @default(ACTIVE)
+  businessId    String        @map("business_id")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   saleItems     SaleItem[]
   inventoryMovements InventoryMovement[]
 
@@ -63,6 +83,7 @@ model WineProduct {
   @@index([name])
   @@index([winery])
   @@index([category])
+  @@index([businessId])
   @@map("wine_products")
 }
 
@@ -70,6 +91,7 @@ model InventoryMovement {
   id            String       @id @default(uuid())
   productId     String       @map("product_id")
   userId        String       @map("user_id")
+  businessId    String       @map("business_id")
   quantity      Int
   type          MovementType
   notes         String?
@@ -77,9 +99,11 @@ model InventoryMovement {
 
   product       WineProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([userId])
+  @@index([businessId])
   @@index([createdAt])
   @@map("inventory_movements")
 }
@@ -88,13 +112,16 @@ model Sale {
   id            String      @id @default(uuid())
   saleNumber    String      @unique @map("sale_number")
   userId        String      @map("user_id")
+  businessId    String      @map("business_id")
   totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
   createdAt     DateTime    @default(now()) @map("created_at")
 
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   items         SaleItem[]
 
   @@index([userId])
+  @@index([businessId])
   @@index([createdAt])
   @@map("sales")
 }

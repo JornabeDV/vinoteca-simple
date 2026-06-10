@@ -2,7 +2,8 @@ import { AppShell } from "@/components/layout/app-shell";
 export const dynamic = "force-dynamic";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { User, Mail, Shield, Calendar } from "lucide-react";
+import { getBusinessById } from "@/lib/auth-actions";
+import { User, Mail, Shield, Calendar, Store, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -12,8 +13,12 @@ export default async function ProfilePage() {
   const userData = user
     ? await prisma.user.findUnique({
         where: { id: user.id },
-        select: { id: true, name: true, email: true, role: true, createdAt: true },
+        select: { id: true, name: true, email: true, role: true, createdAt: true, businessId: true },
       })
+    : null;
+
+  const business = userData?.businessId
+    ? await getBusinessById(userData.businessId)
     : null;
 
   return (
@@ -99,6 +104,31 @@ export default async function ProfilePage() {
                   </p>
                 </div>
               </div>
+              {business && (
+                <>
+                  <Separator />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                      <Store className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Vinoteca</p>
+                      <p className="font-medium">{business.name}</p>
+                    </div>
+                  </div>
+                  {userData?.role === "OWNER" && (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]/10">
+                        <KeyRound className="h-4 w-4 text-[#7b1f3a]" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Código de invitación</p>
+                        <p className="font-medium font-mono text-[#7b1f3a]">{business.inviteCode}</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

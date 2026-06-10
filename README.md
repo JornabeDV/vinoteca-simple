@@ -1,8 +1,8 @@
-# VinotecaOS
+# Vinoteca Simple
 
-**El sistema operativo para vinotecas.**
+**La forma más simple de administrar tu vinoteca.**
 
-VinotecaOS es una plataforma SaaS moderna para la gestión de vinotecas y negocios de vinos. Reemplaza hojas de cálculo, registros en papel y sistemas informales con una experiencia digital premium, intuitiva y escalable.
+Vinoteca Simple es una plataforma SaaS moderna para la gestión de vinotecas y negocios de vinos. Reemplaza hojas de cálculo, registros en papel y sistemas informales con una experiencia digital premium, intuitiva y escalable.
 
 ---
 
@@ -45,7 +45,7 @@ VinotecaOS es una plataforma SaaS moderna para la gestión de vinotecas y negoci
 ```bash
 # 1. Clonar el repositorio
 git clone <repo-url>
-cd vinotecaos
+cd vinoteca-simple
 
 # 2. Instalar dependencias
 npm install
@@ -69,15 +69,15 @@ La aplicación estará disponible en `http://localhost:3000`.
 
 | Rol | Email | Contraseña |
 |-----|-------|------------|
-| Propietario | `owner@vinotecaos.com` | `owner123` |
-| Empleado | `empleado@vinotecaos.com` | `empleado123` |
+| Propietario | `owner@vinotecasimple.com` | `owner123` |
+| Empleado | `empleado@vinotecasimple.com` | `empleado123` |
 
 ---
 
 ## 📁 Estructura del Proyecto
 
 ```
-vinotecaos/
+vinoteca-simple/
 ├── prisma/
 │   ├── schema.prisma          # Esquema de base de datos
 │   ├── seed.ts                # Datos iniciales
@@ -155,4 +155,4 @@ Ver `prisma/schema.prisma` para la definición completa con índices y relacione
 
 ## 📄 Licencia
 
-Proyecto privado — VinotecaOS.
+Proyecto privado — Vinoteca Simple.
