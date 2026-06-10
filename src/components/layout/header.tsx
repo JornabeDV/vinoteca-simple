@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User } from "next-auth";
-import { Wine } from "lucide-react";
+import { MobileSidebar } from "./sidebar";
 
 function getInitials(name?: string | null) {
   if (!name) return "U";
@@ -37,10 +35,10 @@ function getPageTitle(pathname: string) {
     "/usuarios": "Usuarios",
     "/perfil": "Perfil",
   };
-  if (pathname.startsWith("/productos/") && pathname !== "/productos/nuevo") {
+  if (pathname.startsWith("/productos/editar/")) {
     return "Editar Producto";
   }
-  if (pathname.startsWith("/ventas/") && pathname !== "/ventas/nueva") {
+  if (pathname.startsWith("/ventas/detalle/")) {
     return "Detalle de Venta";
   }
   return map[pathname] || "VinotecaOS";
@@ -51,19 +49,20 @@ export function Header({ user }: { user?: User & { role?: string } }) {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-      <Sidebar userRole={user?.role} />
+      {/* Mobile menu */}
+      <div className="lg:hidden">
+        <MobileSidebar userRole={user?.role} />
+      </div>
 
       <div className="flex flex-1 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            {getPageTitle(pathname)}
-          </h1>
-        </div>
+        <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+          {getPageTitle(pathname)}
+        </h1>
 
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                 <Avatar className="h-9 w-9 border border-border">
                   <AvatarFallback className="bg-[#7b1f3a] text-xs font-medium text-white">
                     {getInitials(user?.name || user?.email)}
@@ -86,15 +85,13 @@ export function Header({ user }: { user?: User & { role?: string } }) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => window.location.href = '/perfil'}>
+              <DropdownMenuItem onClick={() => (window.location.href = "/perfil")}>
                 Perfil
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() =>
-                  (window.location.href = "/api/auth/signout")
-                }
+                onClick={() => (window.location.href = "/api/auth/signout")}
               >
                 Cerrar sesión
               </DropdownMenuItem>
