@@ -69,8 +69,8 @@ La aplicación estará disponible en `http://localhost:3000`.
 
 | Rol | Email | Contraseña |
 |-----|-------|------------|
-| Propietario | `owner@vinotecasimple.com` | `owner123` |
-| Empleado | `empleado@vinotecasimple.com` | `empleado123` |
+| Propietario | `owner@Vinoteca Simple.com` | `owner123` |
+| Empleado | `empleado@Vinoteca Simple.com` | `empleado123` |
 
 ---
 

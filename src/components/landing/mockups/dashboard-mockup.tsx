@@ -24,7 +24,7 @@ export function DashboardMockup() {
         </div>
 
         {/* KPIs */}
-        <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "Ventas del mes", value: "$1.245.000", icon: DollarSign, trend: "+12%" },
             { label: "Productos", value: "142", icon: Package, trend: "+3" },
@@ -38,17 +38,17 @@ export function DashboardMockup() {
                   {kpi.trend}
                 </span>
               </div>
-              <div className="font-heading text-lg font-bold text-foreground">{kpi.value}</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">{kpi.label}</div>
+              <div className="font-heading text-sm sm:text-lg font-bold text-foreground truncate">{kpi.value}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">{kpi.label}</div>
             </div>
           ))}
         </div>
 
         {/* Chart area */}
-        <div className="px-6 pb-6">
-          <div className="bg-muted/30 rounded-xl p-4 border border-border/40">
-            <div className="text-xs font-medium text-muted-foreground mb-4">Tendencia de ventas</div>
-            <div className="flex items-end gap-2 h-28">
+        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="bg-muted/30 rounded-xl p-3 sm:p-4 border border-border/40">
+            <div className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-3 sm:mb-4">Tendencia de ventas</div>
+            <div className="flex items-end gap-1 sm:gap-2 h-20 sm:h-28">
               {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 55].map((h, i) => (
                 <div
                   key={i}

@@ -18,8 +18,8 @@ export function HeroSection() {
     <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
       {/* Background subtle gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#faf9f7] via-white to-[#faf9f7] pointer-events-none" />
-      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-[#7b1f3a]/3 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#7b1f3a]/3 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 -right-32 sm:right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-[#7b1f3a]/3 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-32 sm:bottom-0 sm:left-0 w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] bg-[#7b1f3a]/3 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -86,16 +86,16 @@ export function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-10 flex items-center gap-6 justify-center lg:justify-start text-xs text-muted-foreground"
+              className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 justify-center lg:justify-start text-xs text-muted-foreground"
             >
               <div className="flex items-center gap-1.5">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 <span className="font-medium text-foreground">4.9</span>
                 <span>de calificación</span>
               </div>
-              <div className="w-px h-4 bg-border" />
+              <div className="w-px h-4 bg-border hidden sm:block" />
               <div>Prueba gratis 14 días</div>
-              <div className="w-px h-4 bg-border" />
+              <div className="w-px h-4 bg-border hidden sm:block" />
               <div>Sin tarjeta de crédito</div>
             </motion.div>
           </div>

@@ -16,13 +16,13 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "VinotecaOS — Sistema de Gestión para Vinotecas",
+  title: "Vinoteca Simple — Sistema de Gestión para Vinotecas",
   description: "La forma más simple de administrar tu vinoteca.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "VinotecaOS",
+    title: "Vinoteca Simple",
   },
   icons: {
     icon: "/icon-192.png",

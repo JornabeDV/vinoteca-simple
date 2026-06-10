@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "VinotecaOS",
-    short_name: "VinotecaOS",
+    name: "Vinoteca Simple",
+    short_name: "Vinoteca Simple",
     description: "Sistema de gestión para vinotecas",
     start_url: "/",
     display: "standalone",

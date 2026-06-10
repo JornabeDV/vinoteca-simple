@@ -6,9 +6,9 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "¿Necesito conocimientos técnicos para usar VinotecaSimple?",
+    question: "¿Necesito conocimientos técnicos para usar Vinoteca Simple?",
     answer:
-      "No. La plataforma está diseñada para que cualquier persona la use sin capacitación. Si sabés usar WhatsApp o Instagram, sabés usar VinotecaSimple. La interfaz es intuitiva y cada función está pensada para dueños de vinotecas, no para ingenieros.",
+      "No. La plataforma está diseñada para que cualquier persona la use sin capacitación. Si sabés usar WhatsApp o Instagram, sabés usar Vinoteca Simple. La interfaz es intuitiva y cada función está pensada para dueños de vinotecas, no para ingenieros.",
   },
   {
     question: "¿Puedo probarlo antes de contratar?",
@@ -18,7 +18,7 @@ const faqs = [
   {
     question: "¿Funciona desde el celular?",
     answer:
-      "Sí. VinotecaSimple es 100% responsive. Podés registrar ventas, consultar stock y ver métricas desde tu celular, tablet o computadora. Solo necesitás conexión a internet.",
+      "Sí. Vinoteca Simple es 100% responsive. Podés registrar ventas, consultar stock y ver métricas desde tu celular, tablet o computadora. Solo necesitás conexión a internet.",
   },
   {
     question: "¿Cuánto tarda la implementación?",

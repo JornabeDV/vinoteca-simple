@@ -202,7 +202,7 @@ export function ProductForm({ product }: ProductFormProps) {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
+          <Card className="border-border/50 hidden">
             <CardContent className="p-6 space-y-4">
               <h3 className="font-heading text-lg font-semibold">Imagen</h3>
               <div className="flex flex-col items-center gap-3">

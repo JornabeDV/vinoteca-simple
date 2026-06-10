@@ -86,7 +86,7 @@ export function PricingSection() {
               transition={{ duration: 0.5, delay: i * 0.1 }}
               className={`relative bg-card rounded-2xl p-6 lg:p-8 border transition-all duration-300 ${
                 plan.popular
-                  ? "border-[#7b1f3a] shadow-xl shadow-[#7b1f3a]/10 scale-105"
+                  ? "border-[#7b1f3a] shadow-xl shadow-[#7b1f3a]/10 md:scale-105"
                   : "border-border/50 hover:border-[#7b1f3a]/20 hover:shadow-lg"
               }`}
             >

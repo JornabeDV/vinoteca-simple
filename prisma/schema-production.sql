@@ -147,6 +147,6 @@ VALUES ('b1a2c3d4-e5f6-7890-abcd-ef1234567890', 'Vinoteca Demo', 'DEMO2024', NOW
 
 INSERT INTO "users" ("id", "email", "name", "password", "role", "business_id", "created_at", "updated_at")
 VALUES
-  ('u1a2b3c4-d5e6-7890-abcd-ef1234567890', 'owner@vinotecasimple.com', 'Carlos Mendoza', '$2b$12$SlIWYloiUQagq.irwVXf1ea1VjsTMujFBsqD7RaLrhioo0yrRJLE2', 'OWNER', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW()),
-  ('u2b3c4d5-e6f7-8901-bcde-fa2345678901', 'empleado@vinotecasimple.com', 'María López', '$2b$12$kZK/r9rtbbGXJwo8qB35vuvjWnva64QRPoN6cgQEdDquYM69bOrOu', 'EMPLOYEE', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW()),
-  ('u3c4d5e6-f7g8-9012-cdef-gb3456789012', 'juan@vinotecasimple.com', 'Juan Pérez', '$2b$12$kZK/r9rtbbGXJwo8qB35vuvjWnva64QRPoN6cgQEdDquYM69bOrOu', 'EMPLOYEE', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW());
+  ('u1a2b3c4-d5e6-7890-abcd-ef1234567890', 'owner@Vinoteca Simple.com', 'Carlos Mendoza', '$2b$12$SlIWYloiUQagq.irwVXf1ea1VjsTMujFBsqD7RaLrhioo0yrRJLE2', 'OWNER', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW()),
+  ('u2b3c4d5-e6f7-8901-bcde-fa2345678901', 'empleado@Vinoteca Simple.com', 'María López', '$2b$12$kZK/r9rtbbGXJwo8qB35vuvjWnva64QRPoN6cgQEdDquYM69bOrOu', 'EMPLOYEE', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW()),
+  ('u3c4d5e6-f7g8-9012-cdef-gb3456789012', 'juan@Vinoteca Simple.com', 'Juan Pérez', '$2b$12$kZK/r9rtbbGXJwo8qB35vuvjWnva64QRPoN6cgQEdDquYM69bOrOu', 'EMPLOYEE', 'b1a2c3d4-e5f6-7890-abcd-ef1234567890', NOW(), NOW());

@@ -72,7 +72,7 @@ export function LandingFooter() {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            © 2026 VinotecaSimple. Todos los derechos reservados.
+            © 2026 Vinoteca Simple. Todos los derechos reservados.
           </p>
           <p className="text-xs text-muted-foreground">
             San Juan, Argentina

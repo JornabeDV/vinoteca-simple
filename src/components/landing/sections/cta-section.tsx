@@ -27,7 +27,7 @@ export function CtaSection() {
           </h2>
 
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Solicitá una demo gratuita y descubrí cómo VinotecaSimple puede transformar tu negocio. Sin compromiso, sin tarjeta de crédito.
+            Solicitá una demo gratuita y descubrí cómo Vinoteca Simple puede transformar tu negocio. Sin compromiso, sin tarjeta de crédito.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 justify-center">

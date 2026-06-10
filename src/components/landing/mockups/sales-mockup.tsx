@@ -52,18 +52,18 @@ export function SalesMockup() {
               </div>
               <div className="space-y-2 mb-4">
                 {items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-card rounded-lg border border-border/30">
-                    <div>
-                      <div className="text-xs font-medium text-foreground">{item.name}</div>
+                  <div key={i} className="flex items-center justify-between p-2 bg-card rounded-lg border border-border/30 gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-foreground truncate">{item.name}</div>
                       <div className="text-[10px] text-muted-foreground">{item.price} c/u</div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                       <div className="flex items-center gap-1">
                         <Minus className="w-3 h-3 text-muted-foreground" />
                         <span className="text-xs font-medium w-4 text-center">{item.qty}</span>
                         <Plus className="w-3 h-3 text-[#7b1f3a]" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground ml-2">{item.total}</span>
+                      <span className="text-xs font-semibold text-foreground ml-1">{item.total}</span>
                       <Trash2 className="w-3 h-3 text-muted-foreground hover:text-red-500" />
                     </div>
                   </div>

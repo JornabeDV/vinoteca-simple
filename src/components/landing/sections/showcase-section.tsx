@@ -50,7 +50,7 @@ export function ShowcaseSection() {
           className="text-center max-w-2xl mx-auto mb-16"
         >
           <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-            Así de simple es usar VinotecaSimple
+            Así de simple es usar Vinoteca Simple
           </h2>
           <p className="mt-4 text-muted-foreground">
             Diseñado para que cualquier persona de tu equipo lo use sin entrenamiento.

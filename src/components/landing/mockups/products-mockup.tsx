@@ -43,31 +43,33 @@ export function ProductsMockup() {
           </div>
 
           {/* Table */}
-          <div className="border border-border/40 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr,auto,auto,auto] gap-3 px-4 py-2.5 bg-muted/30 text-[10px] font-medium text-muted-foreground uppercase">
-              <span>Producto</span>
-              <span>Bodega</span>
-              <span>Precio</span>
-              <span>Stock</span>
-            </div>
-            {products.map((p, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[1fr,auto,auto,auto] gap-3 px-4 py-3 border-t border-border/30 items-center"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#7b1f3a]/10 flex items-center justify-center">
-                    <Wine className="w-3.5 h-3.5 text-[#7b1f3a]" />
-                  </div>
-                  <span className="text-xs font-medium text-foreground">{p.name}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{p.winery}</span>
-                <span className="text-xs font-medium text-foreground">{p.price}</span>
-                <span className={`text-xs font-medium ${p.stock < 10 ? "text-red-600" : "text-emerald-600"}`}>
-                  {p.stock}
-                </span>
+          <div className="border border-border/40 rounded-xl overflow-x-auto">
+            <div className="min-w-[320px]">
+              <div className="grid grid-cols-[1fr,auto,auto,auto] gap-3 px-4 py-2.5 bg-muted/30 text-[10px] font-medium text-muted-foreground uppercase">
+                <span>Producto</span>
+                <span>Bodega</span>
+                <span>Precio</span>
+                <span>Stock</span>
               </div>
-            ))}
+              {products.map((p, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[1fr,auto,auto,auto] gap-3 px-4 py-3 border-t border-border/30 items-center"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#7b1f3a]/10 flex items-center justify-center shrink-0">
+                      <Wine className="w-3.5 h-3.5 text-[#7b1f3a]" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground truncate">{p.name}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{p.winery}</span>
+                  <span className="text-xs font-medium text-foreground whitespace-nowrap">{p.price}</span>
+                  <span className={`text-xs font-medium whitespace-nowrap ${p.stock < 10 ? "text-red-600" : "text-emerald-600"}`}>
+                    {p.stock}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -74,34 +75,38 @@ export function Header({
 
         <div className="flex items-center gap-3">
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                <Avatar className="h-9 w-9 border border-border">
-                  <AvatarFallback className="bg-[#7b1f3a] text-xs font-medium text-white">
-                    {getInitials(user?.name || user?.email)}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                  <Avatar className="h-9 w-9 border border-border">
+                    <AvatarFallback className="bg-[#7b1f3a] text-xs font-medium text-white">
+                      {getInitials(user?.name || user?.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              }
+            />
             <DropdownMenuContent className="w-56" align="end">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {user?.name || user?.email}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
-                  </p>
-                  <p className="text-xs capitalize text-[#7b1f3a]">
-                    {user?.role === "OWNER" ? "Propietario" : "Empleado"}
-                  </p>
-                  {businessName && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {businessName}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.name || user?.email}
                     </p>
-                  )}
-                </div>
-              </DropdownMenuLabel>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                    <p className="text-xs capitalize text-[#7b1f3a]">
+                      {user?.role === "OWNER" ? "Propietario" : "Empleado"}
+                    </p>
+                    {businessName && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {businessName}
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => (window.location.href = "/perfil")}>
                 Perfil
