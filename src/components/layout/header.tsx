@@ -15,6 +15,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User } from "next-auth";
 import { MobileSidebar } from "./sidebar";
+import { useTour } from "@/components/onboarding/tour-context";
+import { resetTourState } from "@/components/onboarding/tour-steps";
+import { Sparkles } from "lucide-react";
+
+function RestartTourItem() {
+  const { startTour } = useTour();
+  return (
+    <DropdownMenuItem
+      onClick={() => {
+        resetTourState();
+        startTour();
+      }}
+      className="gap-2"
+    >
+      <Sparkles className="h-3.5 w-3.5 text-[#7b1f3a]" />
+      Reiniciar tour
+    </DropdownMenuItem>
+  );
+}
 
 function getInitials(name?: string | null) {
   if (!name) return "U";
@@ -112,6 +131,8 @@ export function Header({
               <DropdownMenuItem onClick={() => (window.location.href = "/perfil")}>
                 Perfil
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <RestartTourItem />
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
