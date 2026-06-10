@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useTour } from "./tour-context";
 import { TourTooltip } from "./tour-tooltip";
+import { useIsClient } from "./use-is-client";
 
 interface Rect {
   top: number;
@@ -13,6 +13,7 @@ interface Rect {
 }
 
 export function TourOverlay() {
+  const isClient = useIsClient();
   const { isActive, currentStep, closeTour } = useTour();
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{
@@ -21,6 +22,7 @@ export function TourOverlay() {
     placement: "top" | "bottom" | "left" | "right" | "center";
   }>({ top: 0, left: 0, placement: "center" });
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visible, setVisible] = useState(false);
 
   const isCenter = currentStep?.target === "center";
 
@@ -39,7 +41,6 @@ export function TourOverlay() {
 
     const target = document.querySelector(currentStep.target);
     if (!target) {
-      // Target not found, show centered tooltip with warning
       setTargetRect(null);
       setTooltipPos({
         top: window.innerHeight / 2,
@@ -59,7 +60,6 @@ export function TourOverlay() {
     };
     setTargetRect(spotlightRect);
 
-    // Calculate tooltip position
     const tooltipWidth = 360;
     const tooltipHeight = 200;
     const gap = 16;
@@ -70,7 +70,6 @@ export function TourOverlay() {
     const viewportW = window.innerWidth;
     const viewportH = window.innerHeight;
 
-    // On mobile (< 1024), always center-bottom
     if (viewportW < 1024) {
       placement = "bottom";
       top = Math.min(
@@ -79,22 +78,15 @@ export function TourOverlay() {
       );
       left = Math.max(
         16,
-        Math.min(
-          viewportW / 2 - tooltipWidth / 2,
-          viewportW - tooltipWidth - 16
-        )
+        Math.min(viewportW / 2 - tooltipWidth / 2, viewportW - tooltipWidth - 16)
       );
     } else {
-      // Use requested placement with fallback
       const requested = currentStep.placement;
-
       const fitsBelow =
-        spotlightRect.top + spotlightRect.height + gap + tooltipHeight <
-        viewportH;
+        spotlightRect.top + spotlightRect.height + gap + tooltipHeight < viewportH;
       const fitsAbove = spotlightRect.top - gap - tooltipHeight > 0;
       const fitsRight =
-        spotlightRect.left + spotlightRect.width + gap + tooltipWidth <
-        viewportW;
+        spotlightRect.left + spotlightRect.width + gap + tooltipWidth < viewportW;
       const fitsLeft = spotlightRect.left - gap - tooltipWidth > 0;
 
       if (requested === "bottom" && fitsBelow) placement = "bottom";
@@ -153,11 +145,12 @@ export function TourOverlay() {
     setTooltipPos({ top, left, placement });
   }, [isActive, currentStep, isCenter]);
 
-  // Calculate on step change
   useEffect(() => {
-    if (!isActive || !currentStep) return;
+    if (!isActive || !currentStep) {
+      setVisible(false);
+      return;
+    }
 
-    // Scroll target into view first
     if (!isCenter && currentStep.target) {
       const el = document.querySelector(currentStep.target);
       if (el) {
@@ -165,27 +158,23 @@ export function TourOverlay() {
       }
     }
 
-    // Wait for scroll to settle before calculating positions
     const timer = setTimeout(() => {
       calculatePositions();
+      setVisible(true);
     }, 400);
 
     return () => clearTimeout(timer);
   }, [isActive, currentStep, isCenter, calculatePositions]);
 
-  // Recalculate on resize
   useEffect(() => {
     if (!isActive) return;
-
     const handleResize = () => calculatePositions();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [isActive, calculatePositions]);
 
-  // Escape to close
   useEffect(() => {
     if (!isActive) return;
-
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeTour();
     };
@@ -193,7 +182,6 @@ export function TourOverlay() {
     return () => document.removeEventListener("keydown", handleKey);
   }, [isActive, closeTour]);
 
-  // Lock body scroll
   useEffect(() => {
     if (isActive) {
       const original = document.body.style.overflow;
@@ -204,54 +192,46 @@ export function TourOverlay() {
     }
   }, [isActive]);
 
-  if (!isActive || !currentStep) return null;
+  if (!isClient || !isActive || !currentStep) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key="tour-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-[100]"
-      >
-        {/* Dark overlay */}
+    <div
+      className={`fixed inset-0 z-[100] transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      {/* Dark overlay */}
+      <div
+        className="absolute inset-0 bg-black/70"
+        onClick={closeTour}
+        aria-hidden="true"
+      />
+
+      {/* Spotlight hole */}
+      {targetRect && (
         <div
-          className="absolute inset-0 bg-black/70"
-          onClick={closeTour}
-          aria-hidden="true"
-        />
+          className="absolute rounded-lg transition-all duration-300 ease-out"
+          style={{
+            top: targetRect.top,
+            left: targetRect.left,
+            width: targetRect.width,
+            height: targetRect.height,
+            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.7)",
+            pointerEvents: "none",
+          }}
+        >
+          {/* Pulse ring around spotlight */}
+          <div className="absolute -inset-2 rounded-xl border-2 border-[#7b1f3a]/60 animate-pulse" />
+        </div>
+      )}
 
-        {/* Spotlight hole */}
-        {targetRect && (
-          <motion.div
-            initial={false}
-            animate={{
-              top: targetRect.top,
-              left: targetRect.left,
-              width: targetRect.width,
-              height: targetRect.height,
-            }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute rounded-lg"
-            style={{
-              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.7)",
-              pointerEvents: "none",
-            }}
-          >
-            {/* Pulse ring around spotlight */}
-            <div className="absolute -inset-2 rounded-xl border-2 border-[#7b1f3a]/60 animate-pulse" />
-          </motion.div>
-        )}
-
-        {/* Tooltip */}
-        <TourTooltip
-          top={tooltipPos.top}
-          left={tooltipPos.left}
-          placement={tooltipPos.placement}
-        />
-      </motion.div>
-    </AnimatePresence>
+      {/* Tooltip */}
+      <TourTooltip
+        top={tooltipPos.top}
+        left={tooltipPos.left}
+        placement={tooltipPos.placement}
+        visible={visible}
+      />
+    </div>
   );
 }

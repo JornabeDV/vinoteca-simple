@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTourBootstrap } from "@/components/onboarding/use-tour-bootstrap";
+
 import {
   ShoppingCart,
   Plus,
@@ -26,8 +26,6 @@ import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { formatPrice } from "@/lib/utils";
 
 export function SalesPage({ sales }: { sales: any[] }) {
-  useTourBootstrap();
-
   const {
     data: paginatedSales,
     currentPage,

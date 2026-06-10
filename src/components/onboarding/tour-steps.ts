@@ -5,7 +5,6 @@ export interface TourStep {
   title: string;
   description: string;
   target: string | "center";
-  route?: string;
   placement: TourPlacement;
 }
 
@@ -14,72 +13,72 @@ export const tourSteps: TourStep[] = [
     id: "welcome",
     title: "¡Bienvenido a Vinoteca Simple!",
     description:
-      "En menos de 2 minutos vas a conocer las herramientas principales para gestionar tu vinoteca. ¡Empecemos!",
+      "En un minuto vas a conocer las herramientas principales para gestionar tu vinoteca.",
     target: "center",
-    route: "/",
     placement: "center",
   },
   {
-    id: "sidebar-productos",
-    title: "Tu Catálogo de Vinos",
+    id: "nav-dashboard",
+    title: "Panel General",
     description:
-      "Acá accedés a tu catálogo. Podés agregar, editar y organizar todo el inventario de tu vinoteca.",
-    target: '[data-tour="nav-productos"]',
-    route: "/",
+      "Acá tenés un resumen completo de tu negocio: ventas del día, semana, mes, ticket promedio y alertas de stock.",
+    target: '[data-tour-desktop="nav-dashboard"]',
     placement: "right",
   },
   {
-    id: "productos-page",
-    title: "Listado de Productos",
+    id: "nav-productos",
+    title: "Productos",
     description:
-      "Este es tu listado de productos. Empezá creando tu primer vino o, si ya tenés una planilla, usá el botón de importación masiva.",
-    target: '[data-tour="productos-nuevo"]',
-    route: "/productos",
-    placement: "bottom",
+      "Gestioná tu catálogo de vinos. Podés crear productos uno por uno o importar todo tu inventario desde Excel en segundos.",
+    target: '[data-tour-desktop="nav-productos"]',
+    placement: "right",
   },
   {
-    id: "importar-excel",
-    title: "Importación Masiva",
+    id: "nav-inventario",
+    title: "Inventario",
     description:
-      "¿Tenés todo en Excel? Arrastrá el archivo o pegá los datos para cargar tu inventario completo en segundos.",
-    target: '[data-tour="productos-importar"]',
-    route: "/productos",
-    placement: "bottom",
+      "Controlá el stock de cada producto. Ajustá cantidades, recibí alertas de faltante y consultá el historial de movimientos.",
+    target: '[data-tour-desktop="nav-inventario"]',
+    placement: "right",
   },
   {
-    id: "inventario",
-    title: "Control de Stock",
+    id: "nav-ventas",
+    title: "Ventas",
     description:
-      "Desde acá controlás el stock. Podés ajustar cantidades, ver alertas de faltante y el historial de movimientos.",
-    target: '[data-tour="inventario-ajustar"]',
-    route: "/inventario",
-    placement: "bottom",
+      "Registrá ventas de forma simple. Buscás el producto, agregás al carrito y confirmás. El stock se descuenta automáticamente.",
+    target: '[data-tour-desktop="nav-ventas"]',
+    placement: "right",
   },
   {
-    id: "ventas",
-    title: "Registrar Ventas",
+    id: "nav-usuarios",
+    title: "Usuarios",
     description:
-      "Registrar una venta es muy simple. Buscás el producto, agregás al carrito y confirmás. El stock se descuenta automáticamente.",
-    target: '[data-tour="ventas-nueva"]',
-    route: "/ventas",
+      "Como dueño, podés invitar empleados para que usen la app. Cada uno accede con su propia cuenta.",
+    target: '[data-tour-desktop="nav-usuarios"]',
+    placement: "right",
+  },
+  {
+    id: "header-perfil",
+    title: "Tu Perfil",
+    description:
+      "Desde acá accedés a tu perfil, podés cambiar tu contraseña o cerrar sesión cuando quieras.",
+    target: '[data-tour="header-perfil"]',
     placement: "bottom",
   },
   {
     id: "dashboard-kpis",
-    title: "Panel General",
+    title: "Tus Números",
     description:
-      "Volvé al Panel General para ver tus KPIs en tiempo real: ventas del día, semana, mes y ticket promedio.",
+      "Estos indicadores te muestran el estado de tu negocio en tiempo real. Filtrá por período para ver tendencias.",
     target: '[data-tour="dashboard-kpis"]',
-    route: "/",
     placement: "bottom",
   },
   {
     id: "complete",
     title: "¡Listo para empezar!",
     description:
-      "Ya conocés las herramientas principales. Si necesitás ayuda, siempre podés repetir este recorrido desde tu perfil.",
+      "Ya conocés las herramientas principales. Si necesitás ayuda, podés repetir este recorrido desde tu perfil.",
     target: "center",
-    route: "/",
     placement: "center",
   },
 ];

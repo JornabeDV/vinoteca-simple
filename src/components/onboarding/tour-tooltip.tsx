@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowRight, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTour } from "./tour-context";
@@ -9,9 +8,10 @@ interface TourTooltipProps {
   top: number;
   left: number;
   placement: "top" | "bottom" | "left" | "right" | "center";
+  visible: boolean;
 }
 
-export function TourTooltip({ top, left, placement }: TourTooltipProps) {
+export function TourTooltip({ top, left, placement, visible }: TourTooltipProps) {
   const {
     currentStep,
     stepIndex,
@@ -28,18 +28,16 @@ export function TourTooltip({ top, left, placement }: TourTooltipProps) {
   const isCenter = placement === "center";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.96 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className={`absolute z-[101] w-[min(360px,92vw)] ${
-        isCenter ? "fixed" : ""
-      }`}
+    <div
+      className={`absolute z-[101] w-[min(360px,92vw)] transition-all duration-300 ${
+        visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
+      } ${isCenter ? "fixed" : ""}`}
       style={{
         top: isCenter ? "50%" : top,
         left: isCenter ? "50%" : left,
-        transform: isCenter ? "translate(-50%, -50%)" : "none",
+        transform: isCenter
+          ? `translate(-50%, -50%) ${visible ? "scale(1)" : "scale(0.95)"}`
+          : undefined,
       }}
     >
       <div className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
@@ -110,6 +108,6 @@ export function TourTooltip({ top, left, placement }: TourTooltipProps) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

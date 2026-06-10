@@ -8,7 +8,6 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import {
   tourSteps,
   getInitialTourState,
@@ -25,7 +24,6 @@ interface TourContextValue {
   nextStep: () => void;
   prevStep: () => void;
   closeTour: () => void;
-  goToStep: (index: number) => void;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -37,15 +35,7 @@ export function useTour() {
 }
 
 export function TourProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const [state, setState] = useState<TourState>(() => {
-    // Only start automatically on first mount if never seen before
-    const saved = getInitialTourState();
-    // Don't auto-start here; let page.tsx decide based on auth
-    return saved;
-  });
+  const [state, setState] = useState<TourState>(() => getInitialTourState());
 
   const isActive = state.isActive && !state.completed;
   const stepIndex = state.stepIndex;
@@ -71,45 +61,30 @@ export function TourProvider({ children }: { children: ReactNode }) {
     }));
   }, [persist]);
 
-  const goToStep = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= tourSteps.length) {
-        closeTour();
-        return;
-      }
-      const step = tourSteps[index];
-      const currentRoute = step.route ?? pathname;
-
-      persist(() => ({
-        stepIndex: index,
-        isActive: true,
-        completed: false,
-      }));
-
-      // If step has a different route, navigate
-      if (step.route && step.route !== pathname) {
-        router.push(step.route);
-      }
-    },
-    [closeTour, pathname, persist, router]
-  );
-
   const nextStep = useCallback(() => {
     const nextIndex = stepIndex + 1;
     if (nextIndex >= tourSteps.length) {
       closeTour();
       return;
     }
-    goToStep(nextIndex);
-  }, [stepIndex, closeTour, goToStep]);
+    persist(() => ({
+      stepIndex: nextIndex,
+      isActive: true,
+      completed: false,
+    }));
+  }, [stepIndex, closeTour, persist]);
 
   const prevStep = useCallback(() => {
     const prevIndex = stepIndex - 1;
     if (prevIndex < 0) return;
-    goToStep(prevIndex);
-  }, [stepIndex, goToStep]);
+    persist(() => ({
+      stepIndex: prevIndex,
+      isActive: true,
+      completed: false,
+    }));
+  }, [stepIndex, persist]);
 
-  // Sync from localStorage on mount (for cross-page navigation)
+  // Sync from localStorage on mount (for cross-tab sync)
   useEffect(() => {
     const handleStorage = () => {
       const saved = getInitialTourState();
@@ -130,7 +105,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
         nextStep,
         prevStep,
         closeTour,
-        goToStep,
       }}
     >
       {children}

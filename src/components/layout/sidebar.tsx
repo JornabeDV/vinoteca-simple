@@ -20,14 +20,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: undefined as string | undefined },
+  { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
   { name: "Ventas", href: "/ventas", icon: ShoppingCart, tourId: "nav-ventas" },
 ];
 
 const adminNavigation = [
-  { name: "Usuarios", href: "/usuarios", icon: Users, tourId: undefined as string | undefined },
+  { name: "Usuarios", href: "/usuarios", icon: Users, tourId: "nav-usuarios" as string | undefined },
 ];
 
 export function DesktopSidebar({
@@ -76,6 +76,7 @@ export function DesktopSidebar({
               <Link
                 key={item.name}
                 href={item.href}
+                data-tour-desktop={item.tourId}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
@@ -172,7 +173,7 @@ export function MobileSidebar({
                   key={item.name}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  data-tour={item.tourId}
+                  data-tour-mobile={item.tourId}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive

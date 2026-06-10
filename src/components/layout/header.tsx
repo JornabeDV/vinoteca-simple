@@ -78,7 +78,7 @@ export function Header({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="ghost" size="icon-lg" className="relative rounded-full p-0">
+                <Button variant="ghost" size="icon-lg" className="relative rounded-full p-0" data-tour="header-perfil">
                   <Avatar className="h-10 w-10 border border-border">
                     <AvatarFallback className="bg-[#7b1f3a] text-xs font-medium text-white">
                       {getInitials(user?.name || user?.email)}
