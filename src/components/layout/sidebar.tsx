@@ -12,8 +12,9 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  Store,
+  Shield,
   History,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,10 @@ const adminNavigation = [
   { name: "Usuarios", href: "/usuarios", icon: Users, tourId: "nav-usuarios" as string | undefined },
 ];
 
+const superAdminNavigation = [
+  { name: "Vinotecas", href: "/admin", icon: Building2, tourId: undefined as string | undefined },
+];
+
 function isRouteActive(
   pathname: string,
   href: string,
@@ -54,6 +59,16 @@ function isRouteActive(
   );
 }
 
+function getNavItems(userRole?: string) {
+  if (userRole === "ADMIN") {
+    return superAdminNavigation;
+  }
+  if (userRole === "OWNER") {
+    return [...ownerNavigation, ...adminNavigation];
+  }
+  return employeeNavigation;
+}
+
 export function DesktopSidebar({
   userRole,
   businessName,
@@ -62,18 +77,14 @@ export function DesktopSidebar({
   businessName?: string | null;
 }) {
   const pathname = usePathname();
-
-  const navItems =
-    userRole === "OWNER"
-      ? [...ownerNavigation, ...adminNavigation]
-      : employeeNavigation;
+  const navItems = getNavItems(userRole);
 
   return (
     <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-border lg:bg-card">
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="flex h-16 items-center px-6 border-b border-border/50">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href={userRole === "ADMIN" ? "/admin" : "/"} className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]">
               <Wine className="h-5 w-5 text-white" />
             </div>
@@ -149,11 +160,7 @@ export function MobileSidebar({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
-  const navItems =
-    userRole === "OWNER"
-      ? [...ownerNavigation, ...adminNavigation]
-      : employeeNavigation;
+  const navItems = getNavItems(userRole);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -166,7 +173,7 @@ export function MobileSidebar({
         <div className="flex flex-col h-full">
           <div className="flex h-16 items-center px-6 border-b border-border/50">
             <Link
-              href="/"
+              href={userRole === "ADMIN" ? "/admin" : "/"}
               className="flex items-center gap-3"
               onClick={() => setOpen(false)}
             >

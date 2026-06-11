@@ -45,9 +45,16 @@ function getInitials(name?: string | null) {
     .slice(0, 2);
 }
 
+function getRoleLabel(role?: string) {
+  if (role === "ADMIN") return "Administrador";
+  if (role === "OWNER") return "Propietario";
+  return "Empleado";
+}
+
 function getPageTitle(pathname: string) {
   const map: Record<string, string> = {
     "/": "Panel general",
+    "/admin": "Panel de administración",
     "/productos": "Productos",
     "/productos/nuevo": "Nuevo Producto",
     "/inventario": "Inventario",
@@ -117,7 +124,7 @@ export function Header({
                       {user?.email}
                     </p>
                     <p className="text-xs capitalize text-[#7b1f3a]">
-                      {user?.role === "OWNER" ? "Propietario" : "Empleado"}
+                      {getRoleLabel(user?.role)}
                     </p>
                     {businessName && (
                       <p className="text-xs text-muted-foreground truncate">
@@ -128,12 +135,14 @@ export function Header({
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => (window.location.href = "/perfil")}>
-                Perfil
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <RestartTourItem />
-              <DropdownMenuSeparator />
+              {user?.role !== "ADMIN" && (
+                <DropdownMenuItem onClick={() => (window.location.href = "/perfil")}>
+                  Perfil
+                </DropdownMenuItem>
+              )}
+              {user?.role !== "ADMIN" && <DropdownMenuSeparator />}
+              {user?.role !== "ADMIN" && <RestartTourItem />}
+              {user?.role !== "ADMIN" && <DropdownMenuSeparator />}
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => signOut({ callbackUrl: "/login" })}

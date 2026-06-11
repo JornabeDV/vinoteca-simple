@@ -22,7 +22,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <DesktopSidebar userRole={user.role} businessName={business?.name} />
 
       {/* Main content area - offset on desktop */}
-      <TourClientWrapper>
+      <TourClientWrapper userRole={user?.role}>
         <div className="lg:ml-72">
           <Header user={user as any} businessName={business?.name} />
           <main className="p-4 sm:p-6 lg:p-8">

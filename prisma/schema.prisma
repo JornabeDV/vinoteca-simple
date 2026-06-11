@@ -9,6 +9,12 @@ datasource db {
 enum UserRole {
   OWNER
   EMPLOYEE
+  ADMIN
+}
+
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum ProductStatus {
@@ -32,11 +38,12 @@ enum MovementType {
 }
 
 model Business {
-  id         String   @id @default(uuid())
+  id         String         @id @default(uuid())
   name       String
-  inviteCode String   @unique @map("invite_code")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  inviteCode String         @unique @map("invite_code")
+  status     BusinessStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
 
   users      User[]
   products   Product[]

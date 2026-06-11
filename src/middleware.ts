@@ -6,12 +6,22 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
+    // Admin routes: only ADMIN allowed
+    if (path.startsWith("/admin") && token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    // Redirect admin away from business routes to admin panel
+    if (token?.role === "ADMIN" && !path.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
     // Redirect employees away from dashboard
     if (path === "/" && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas/nueva", req.url));
     }
 
-    // Protect admin-only routes
+    // Protect admin-only routes (within a business)
     if (path.startsWith("/usuarios") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas", req.url));
     }
@@ -35,6 +45,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/admin/:path*",
     "/productos/:path*",
     "/inventario/:path*",
     "/ventas/:path*",

@@ -83,6 +83,16 @@ async function main() {
   const ownerPass = await bcrypt.hash("owner123", 12);
   const empPass = await bcrypt.hash("empleado123", 12);
 
+  const adminPass = await bcrypt.hash("admin123", 12);
+  const admin = await prisma.user.create({
+    data: {
+      email: "admin@vinotecasimple.com",
+      name: "Super Admin",
+      password: adminPass,
+      role: UserRole.ADMIN,
+    },
+  });
+
   const owner = await prisma.user.create({
     data: {
       email: "owner@vinotecasimple.com",
@@ -335,6 +345,7 @@ async function main() {
 
   console.log("\n🎉 Seed masivo completado!");
   console.log("Credenciales:");
+  console.log("  admin@vinotecasimple.com / admin123  (super admin)");
   console.log("  owner@vinotecasimple.com / owner123");
   console.log("  empleado@vinotecasimple.com / empleado123");
   console.log("  juan@vinotecasimple.com / empleado123");
