@@ -85,7 +85,7 @@ export function DashboardPage({
       </div>
 
       {/* Charts & Insights */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 pb-0 mb-0">
         <Card className="lg:col-span-2 border-border/50">
           <CardHeader className="pb-2">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

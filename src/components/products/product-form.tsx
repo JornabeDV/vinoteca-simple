@@ -24,8 +24,11 @@ interface ProductFormProps {
   product?: any;
 }
 
-const PRODUCT_TYPE_LABELS: Record<ProductType, { brand: string; style: string; year?: string }> = {
-  WINE: { brand: "Bodega", style: "Varietal", year: "Añada" },
+const PRODUCT_TYPE_LABELS: Record<
+  ProductType,
+  { brand: string; style: string; year?: string }
+> = {
+  WINE: { brand: "Bodega", style: "Varietal", year: "Año" },
   BEER: { brand: "Marca", style: "Estilo" },
   SPIRIT: { brand: "Destilería", style: "Tipo" },
   WATER: { brand: "Marca", style: "Tipo" },
@@ -45,7 +48,7 @@ export function ProductForm({ product }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(product?.image || "");
   const [productType, setProductType] = useState<ProductType>(
-    product?.productType || ProductType.WINE
+    product?.productType || ProductType.WINE,
   );
 
   const labels = PRODUCT_TYPE_LABELS[productType];
@@ -91,204 +94,207 @@ export function ProductForm({ product }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border/50">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-heading text-lg font-semibold">
-                Información Básica
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="name">Nombre del Producto *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    defaultValue={product?.name}
-                    placeholder="Ej: Malbec Reserva"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo de producto *</Label>
-                  <Select
-                    value={productType}
-                    onValueChange={(v) => setProductType(v as ProductType)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar tipo">
-                        {PRODUCT_TYPE_OPTIONS.find((opt) => opt.value === productType)?.label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRODUCT_TYPE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoría *</Label>
-                  <Input
-                    id="category"
-                    name="category"
-                    defaultValue={product?.category}
-                    placeholder="Ej: Vino Tinto"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="brand">{labels.brand} *</Label>
-                  <Input
-                    id="brand"
-                    name="brand"
-                    defaultValue={product?.brand}
-                    placeholder="Ej: Trapiche"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="style">{labels.style} *</Label>
-                  <Input
-                    id="style"
-                    name="style"
-                    defaultValue={product?.style}
-                    placeholder="Ej: Malbec"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="year">{labels.year || "Año"}</Label>
-                  <Input
-                    id="year"
-                    name="year"
-                    type="number"
-                    defaultValue={product?.year || ""}
-                    placeholder="2020"
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    defaultValue={product?.description || ""}
-                    placeholder="Notas de cata, descripción del producto..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-heading text-lg font-semibold">Precios</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="costPrice">Precio de Costo *</Label>
-                  <MoneyInput
-                    id="costPrice"
-                    name="costPrice"
-                    defaultValue={product?.costPrice}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salePrice">Precio de Venta *</Label>
-                  <MoneyInput
-                    id="salePrice"
-                    name="salePrice"
-                    defaultValue={product?.salePrice}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="border-border/50">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-heading text-lg font-semibold">Inventario</h3>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentStock">Stock Inicial</Label>
-                  <Input
-                    id="currentStock"
-                    name="currentStock"
-                    type="number"
-                    min="0"
-                    defaultValue={product?.currentStock || 0}
-                    disabled={!!product}
-                  />
-                  {product && (
-                    <p className="text-xs text-muted-foreground">
-                      El stock se gestiona desde el módulo de inventario
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="minStock">Stock Mínimo</Label>
-                  <Input
-                    id="minStock"
-                    name="minStock"
-                    type="number"
-                    min="0"
-                    defaultValue={product?.minStock || 0}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50 hidden">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-heading text-lg font-semibold">Imagen</h3>
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex h-32 w-full items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                  ) : (
-                    <Wine className="h-10 w-10 text-muted-foreground/40" />
-                  )}
-                </div>
+      <div className="space-y-6">
+        <Card className="border-border/50">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-heading text-lg font-semibold">
+              Información Básica
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="name">Nombre del Producto *</Label>
                 <Input
-                  placeholder="URL de la imagen"
-                  value={imagePreview}
-                  onChange={(e) => setImagePreview(e.target.value)}
-                  className="text-sm"
+                  id="name"
+                  name="name"
+                  defaultValue={product?.name}
+                  placeholder="Ej: Malbec Reserva"
+                  required
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="space-y-2">
+                <Label>Tipo de producto *</Label>
+                <Select
+                  value={productType}
+                  onValueChange={(v) => setProductType(v as ProductType)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar tipo">
+                      {
+                        PRODUCT_TYPE_OPTIONS.find(
+                          (opt) => opt.value === productType,
+                        )?.label
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría *</Label>
+                <Input
+                  id="category"
+                  name="category"
+                  defaultValue={product?.category}
+                  placeholder="Ej: Vino Tinto"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">{labels.brand} *</Label>
+                <Input
+                  id="brand"
+                  name="brand"
+                  defaultValue={product?.brand}
+                  placeholder="Ej: Trapiche"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="style">{labels.style} *</Label>
+                <Input
+                  id="style"
+                  name="style"
+                  defaultValue={product?.style}
+                  placeholder="Ej: Malbec"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="year">{labels.year || "Año"}</Label>
+                <Input
+                  id="year"
+                  name="year"
+                  type="number"
+                  defaultValue={product?.year || ""}
+                  placeholder="2020"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  defaultValue={product?.description || ""}
+                  placeholder="Notas de cata, descripción del producto..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-heading text-lg font-semibold">Precios</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="costPrice">Precio de Costo *</Label>
+                <MoneyInput
+                  id="costPrice"
+                  name="costPrice"
+                  defaultValue={product?.costPrice}
+                  placeholder="0,00"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salePrice">Precio de Venta *</Label>
+                <MoneyInput
+                  id="salePrice"
+                  name="salePrice"
+                  defaultValue={product?.salePrice}
+                  placeholder="0,00"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-heading text-lg font-semibold">Inventario</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="currentStock">Stock Inicial</Label>
+                <Input
+                  id="currentStock"
+                  name="currentStock"
+                  type="number"
+                  min="0"
+                  defaultValue={product?.currentStock || 0}
+                  disabled={!!product}
+                />
+                {product && (
+                  <p className="text-xs text-muted-foreground">
+                    El stock se gestiona desde el módulo de inventario
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minStock">Stock Mínimo</Label>
+                <Input
+                  id="minStock"
+                  name="minStock"
+                  type="number"
+                  min="0"
+                  defaultValue={product?.minStock || 0}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 hidden">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-heading text-lg font-semibold">Imagen</h3>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex h-32 w-full items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <Wine className="h-10 w-10 text-muted-foreground/40" />
+                )}
+              </div>
+              <Input
+                placeholder="URL de la imagen"
+                value={imagePreview}
+                onChange={(e) => setImagePreview(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Button
-          type="submit"
-          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
-          disabled={isLoading}
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {product ? "Guardar Cambios" : "Crear Producto"}
-        </Button>
+      <div className="flex max-sm:flex-col max-sm:items-center sm:justify-end gap-4">
         <Button
           type="button"
           variant="outline"
+          size="xl"
+          className="max-sm:w-full"
           onClick={() => router.push("/productos")}
         >
           Cancelar
+        </Button>
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="max-sm:w-full"
+          size="xl"
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {product ? "Guardar Cambios" : "Crear Producto"}
         </Button>
       </div>
     </form>
