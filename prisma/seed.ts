@@ -126,6 +126,32 @@ async function main() {
   const users = [owner, employee1, employee2];
   console.log(`✅ ${users.length} usuarios creados`);
 
+  // ─── CATEGORÍAS ───
+  const categoryNames = [
+    "Vino Tinto",
+    "Vino Blanco",
+    "Vino Rosado",
+    "Espumante",
+    "Cerveza",
+    "Whisky",
+    "Agua",
+    "Aperitivo",
+  ];
+
+  const categoryRecords = await Promise.all(
+    categoryNames.map((name) =>
+      prisma.category.create({
+        data: { name, businessId: business.id },
+      })
+    )
+  );
+
+  const categoryByName = new Map(categoryRecords.map((c) => [c.name, c.id]));
+
+  function resolveCategoryId(categoryName: string): string | undefined {
+    return categoryByName.get(categoryName);
+  }
+
   // ─── PRODUCTOS (40 vinos) ───
   const productsData: any[] = [];
   const usedNames = new Set<string>();
@@ -141,7 +167,7 @@ async function main() {
     usedNames.add(fullName);
 
     const style = rand(VARIETALS);
-    const category =
+    const categoryName =
       style === "Rosé" ? "Vino Rosado" :
       style === "Espumante" ? "Espumante" :
       ["Torrontés", "Chardonnay", "Sauvignon Blanc", "Chenin Blanc", "Viognier", "Riesling", "Semillón"].includes(style)
@@ -157,10 +183,10 @@ async function main() {
       id: `wine-${i + 1}`,
       name: fullName,
       brand,
-      category,
+      categoryId: resolveCategoryId(categoryName),
       style,
       year: randInt(2018, 2023),
-      description: `${category} de ${brand}. Varietal ${style}${adj ? `, línea ${adj}` : ""}. Producción limitada de la región de Mendoza, Argentina.`,
+      description: `${categoryName} de ${brand}. Varietal ${style}${adj ? `, línea ${adj}` : ""}. Producción limitada de la región de Mendoza, Argentina.`,
       productType: ProductType.WINE,
       costPrice,
       salePrice,
@@ -174,32 +200,32 @@ async function main() {
   // ─── OTROS PRODUCTOS (cervezas, whiskies, aguas) ───
   const otherProducts = [
     {
-      id: "beer-1", name: "Quilmes Clásica", brand: "Quilmes", category: "Cerveza", style: "Lager",
+      id: "beer-1", name: "Quilmes Clásica", brand: "Quilmes", categoryId: resolveCategoryId("Cerveza"), style: "Lager",
       year: null, description: "Cerveza rubia clásica argentina.", productType: ProductType.BEER,
       costPrice: 800, salePrice: 1400, currentStock: 60, minStock: 10, status: ProductStatus.ACTIVE, businessId: business.id,
     },
     {
-      id: "beer-2", name: "Stella Artois", brand: "Stella Artois", category: "Cerveza", style: "Premium Lager",
+      id: "beer-2", name: "Stella Artois", brand: "Stella Artois", categoryId: resolveCategoryId("Cerveza"), style: "Premium Lager",
       year: null, description: "Cerveza belga premium.", productType: ProductType.BEER,
       costPrice: 1200, salePrice: 2100, currentStock: 40, minStock: 8, status: ProductStatus.ACTIVE, businessId: business.id,
     },
     {
-      id: "spirit-1", name: "Johnnie Walker Black Label", brand: "Johnnie Walker", category: "Whisky", style: "Blended Scotch",
+      id: "spirit-1", name: "Johnnie Walker Black Label", brand: "Johnnie Walker", categoryId: resolveCategoryId("Whisky"), style: "Blended Scotch",
       year: null, description: "Whisky escocés de 12 años.", productType: ProductType.SPIRIT,
       costPrice: 25000, salePrice: 42000, currentStock: 12, minStock: 3, status: ProductStatus.ACTIVE, businessId: business.id,
     },
     {
-      id: "spirit-2", name: "Jack Daniel's Old No. 7", brand: "Jack Daniel's", category: "Whisky", style: "Tennessee Whiskey",
+      id: "spirit-2", name: "Jack Daniel's Old No. 7", brand: "Jack Daniel's", categoryId: resolveCategoryId("Whisky"), style: "Tennessee Whiskey",
       year: null, description: "Whisky americano icónico.", productType: ProductType.SPIRIT,
       costPrice: 22000, salePrice: 38000, currentStock: 10, minStock: 3, status: ProductStatus.ACTIVE, businessId: business.id,
     },
     {
-      id: "water-1", name: "Villa del Sur sin gas", brand: "Villa del Sur", category: "Agua", style: "Sin gas",
+      id: "water-1", name: "Villa del Sur sin gas", brand: "Villa del Sur", categoryId: resolveCategoryId("Agua"), style: "Sin gas",
       year: null, description: "Agua mineral natural.", productType: ProductType.WATER,
       costPrice: 400, salePrice: 700, currentStock: 100, minStock: 20, status: ProductStatus.ACTIVE, businessId: business.id,
     },
     {
-      id: "other-1", name: "Fernet Branca", brand: "Branca", category: "Aperitivo", style: "Amargo",
+      id: "other-1", name: "Fernet Branca", brand: "Branca", categoryId: resolveCategoryId("Aperitivo"), style: "Amargo",
       year: null, description: "Fernet italiano, clásico argentino.", productType: ProductType.OTHER,
       costPrice: 4500, salePrice: 7800, currentStock: 25, minStock: 5, status: ProductStatus.ACTIVE, businessId: business.id,
     },

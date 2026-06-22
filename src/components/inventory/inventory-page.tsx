@@ -107,7 +107,7 @@ export function InventoryPage({
     const rows = products.map((p) => [
       p.name || "",
       p.brand || "",
-      p.category || "",
+      p.category?.name || "",
       p.style || "",
       (p.currentStock ?? "").toString(),
       (p.minStock ?? "").toString(),

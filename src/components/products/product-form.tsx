@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Wine } from "lucide-react";
+import { Loader2, Wine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -17,11 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createProduct, updateProduct } from "@/lib/actions";
+import { createProduct, updateProduct, createCategory } from "@/lib/actions";
 import { ProductType } from "@prisma/client";
 
 interface ProductFormProps {
   product?: any;
+  categories?: any[];
 }
 
 const PRODUCT_TYPE_LABELS: Record<
@@ -43,13 +52,20 @@ const PRODUCT_TYPE_OPTIONS = [
   { value: ProductType.OTHER, label: "Otro" },
 ];
 
-export function ProductForm({ product }: ProductFormProps) {
+export function ProductForm({ product, categories = [] }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(product?.image || "");
   const [productType, setProductType] = useState<ProductType>(
     product?.productType || ProductType.WINE,
   );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | "__new__">(
+    product?.categoryId || ""
+  );
+  const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
 
   const labels = PRODUCT_TYPE_LABELS[productType];
 
@@ -57,11 +73,19 @@ export function ProductForm({ product }: ProductFormProps) {
     e.preventDefault();
     setIsLoading(true);
 
+    if (
+      !selectedCategoryId ||
+      (selectedCategoryId === "__new__" && !newCategoryName.trim())
+    ) {
+      toast.error("Seleccioná una categoría");
+      setIsLoading(false);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const data: any = {
       name: formData.get("name") as string,
       brand: formData.get("brand") as string,
-      category: formData.get("category") as string,
       style: formData.get("style") as string,
       year: formData.get("year")
         ? parseInt(formData.get("year") as string)
@@ -74,6 +98,12 @@ export function ProductForm({ product }: ProductFormProps) {
       minStock: parseInt(formData.get("minStock") as string) || 0,
       image: imagePreview || null,
     };
+
+    if (selectedCategoryId && selectedCategoryId !== "__new__") {
+      data.categoryId = selectedCategoryId;
+    } else if (selectedCategoryId === "__new__" && newCategoryName.trim()) {
+      data.categoryName = newCategoryName.trim();
+    }
 
     try {
       if (product) {
@@ -137,13 +167,30 @@ export function ProductForm({ product }: ProductFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría *</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  defaultValue={product?.category}
-                  placeholder="Ej: Vino Tinto"
-                  required
-                />
+                <Select
+                  value={selectedCategoryId}
+                  onValueChange={(value) => {
+                    if (value === "__new__") {
+                      setIsNewCategoryDialogOpen(true);
+                    } else {
+                      setSelectedCategoryId(value || "");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__new__" className="font-medium text-[#7b1f3a]">
+                      + Nueva categoría
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="brand">{labels.brand} *</Label>
@@ -297,6 +344,82 @@ export function ProductForm({ product }: ProductFormProps) {
           {product ? "Guardar Cambios" : "Crear Producto"}
         </Button>
       </div>
+
+      <Dialog
+        open={isNewCategoryDialogOpen}
+        onOpenChange={setIsNewCategoryDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Nueva Categoría</DialogTitle>
+            <DialogDescription>
+              Creá una categoría para organizar tus productos.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newCategoryName.trim()) return;
+
+              setIsCreatingCategory(true);
+              try {
+                const category = await createCategory({
+                  name: newCategoryName.trim(),
+                });
+                setLocalCategories((prev) =>
+                  [...prev, category].sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                  )
+                );
+                setSelectedCategoryId(category.id);
+                setNewCategoryName("");
+                setIsNewCategoryDialogOpen(false);
+                toast.success("Categoría creada");
+              } catch (error: any) {
+                toast.error(error.message || "Error al crear categoría");
+              } finally {
+                setIsCreatingCategory(false);
+              }
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="newCategoryName">Nombre</Label>
+              <Input
+                id="newCategoryName"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Ej: Vino Tinto"
+                autoFocus
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsNewCategoryDialogOpen(false);
+                  setNewCategoryName("");
+                  if (!selectedCategoryId) setSelectedCategoryId("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isCreatingCategory || !newCategoryName.trim()}
+                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+              >
+                {isCreatingCategory && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Crear
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

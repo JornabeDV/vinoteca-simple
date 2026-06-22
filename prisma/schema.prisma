@@ -47,6 +47,7 @@ model Business {
 
   users      User[]
   products   Product[]
+  categories Category[]
   sales      Sale[]
   inventoryMovements InventoryMovement[]
 
@@ -72,11 +73,27 @@ model User {
   @@map("users")
 }
 
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  businessId  String   @map("business_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@unique([businessId, name])
+  @@index([businessId])
+  @@map("categories")
+}
+
 model Product {
   id            String        @id @default(uuid())
   name          String
   brand         String
-  category      String
   style         String
   year          Int?
   description   String?
@@ -87,19 +104,21 @@ model Product {
   minStock      Int           @default(0) @map("min_stock")
   image         String?
   status        ProductStatus @default(ACTIVE)
+  categoryId    String?       @map("category_id")
   businessId    String        @map("business_id")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   saleItems     SaleItem[]
   inventoryMovements InventoryMovement[]
 
   @@index([status])
   @@index([name])
   @@index([brand])
-  @@index([category])
   @@index([productType])
+  @@index([categoryId])
   @@index([businessId])
   @@map("products")
 }

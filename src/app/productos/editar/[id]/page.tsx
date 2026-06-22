@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { ProductForm } from "@/components/products/product-form";
-import { getProductById } from "@/lib/actions";
+import { getProductById, getCategories } from "@/lib/actions";
 import { notFound } from "next/navigation";
 
 export default async function EditProduct({
@@ -9,7 +9,10 @@ export default async function EditProduct({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProductById(id);
+  const [product, categories] = await Promise.all([
+    getProductById(id),
+    getCategories(),
+  ]);
 
   if (!product) {
     notFound();
@@ -26,7 +29,7 @@ export default async function EditProduct({
             Modifica la información de {product.name}
           </p>
         </div>
-        <ProductForm product={product} />
+        <ProductForm product={product} categories={categories} />
       </div>
     </AppShell>
   );

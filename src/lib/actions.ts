@@ -18,6 +18,149 @@ function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return u;
 }
 
+async function verifyBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  const u = checkBusinessAccess(user);
+  const business = await prisma.business.findUnique({
+    where: { id: u.businessId },
+  });
+  if (!business) {
+    throw new Error(
+      "Tu negocio no fue encontrado. Es probable que los datos hayan cambiado. Por favor, cerrá sesión y volvé a ingresar."
+    );
+  }
+  return u;
+}
+
+// ─── Category Actions ───
+
+export async function getCategories() {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const categories = await prisma.category.findMany({
+    where: { businessId: user.businessId },
+    orderBy: { name: "asc" },
+    include: {
+      _count: {
+        select: { products: true },
+      },
+    },
+  });
+  return serializeData(categories);
+}
+
+export async function getCategoryById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const category = await prisma.category.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  return serializeData(category);
+}
+
+export async function getCategoryByName(name: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const category = await prisma.category.findFirst({
+    where: {
+      businessId: user.businessId,
+      name: { equals: name, mode: "insensitive" },
+    },
+  });
+  return serializeData(category);
+}
+
+export async function createCategory(data: {
+  name: string;
+  description?: string;
+  color?: string;
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const category = await prisma.category.create({
+    data: {
+      name: data.name.trim(),
+      description: data.description?.trim(),
+      color: data.color?.trim(),
+      businessId: user.businessId,
+    },
+  });
+
+  revalidatePath("/productos");
+  revalidatePath("/categorias");
+  return serializeData(category);
+}
+
+export async function updateCategory(
+  id: string,
+  data: {
+    name?: string;
+    description?: string;
+    color?: string;
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.category.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Categoría no encontrada");
+
+  const category = await prisma.category.update({
+    where: { id },
+    data: {
+      name: data.name?.trim(),
+      description: data.description?.trim(),
+      color: data.color?.trim(),
+    },
+  });
+
+  revalidatePath("/productos");
+  revalidatePath("/categorias");
+  return serializeData(category);
+}
+
+export async function deleteCategory(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.category.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Categoría no encontrada");
+
+  await prisma.category.delete({ where: { id } });
+
+  revalidatePath("/productos");
+  revalidatePath("/categorias");
+  return { success: true };
+}
+
+// Helper: find or create a category by name within a transaction
+async function upsertCategoryByName(
+  tx: Prisma.TransactionClient,
+  businessId: string,
+  name: string
+) {
+  const normalizedName = name.trim();
+  const existing = await tx.category.findFirst({
+    where: {
+      businessId,
+      name: { equals: normalizedName, mode: "insensitive" },
+    },
+  });
+
+  if (existing) return existing;
+
+  return tx.category.create({
+    data: {
+      name: normalizedName,
+      businessId,
+    },
+  });
+}
+
 // ─── Product Actions ───
 
 export async function getProducts(search?: string, status?: ProductStatus) {
@@ -28,14 +171,15 @@ export async function getProducts(search?: string, status?: ProductStatus) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
       { brand: { contains: search, mode: "insensitive" } },
-      { category: { contains: search, mode: "insensitive" } },
       { style: { contains: search, mode: "insensitive" } },
+      { category: { name: { contains: search, mode: "insensitive" } } },
     ];
   }
   if (status) where.status = status;
 
   const products = await prisma.product.findMany({
     where,
+    include: { category: true },
     orderBy: { createdAt: "desc" },
     take: 300,
   });
@@ -54,7 +198,8 @@ export async function getProductById(id: string) {
 export async function createProduct(data: {
   name: string;
   brand: string;
-  category: string;
+  categoryId?: string;
+  categoryName?: string;
   style: string;
   year?: number | null;
   description?: string;
@@ -65,15 +210,32 @@ export async function createProduct(data: {
   minStock: number;
   image?: string;
 }) {
-  const user = requireOwner(await getCurrentUser());
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
-  const product = await prisma.product.create({
-    data: {
-      ...data,
-      costPrice: data.costPrice,
-      salePrice: data.salePrice,
-      businessId: user.businessId,
-    },
+  const { categoryName, ...productData } = data;
+
+  const product = await prisma.$transaction(async (tx) => {
+    let categoryId = productData.categoryId;
+
+    if (!categoryId && categoryName) {
+      const category = await upsertCategoryByName(
+        tx,
+        user.businessId,
+        categoryName
+      );
+      categoryId = category.id;
+    }
+
+    return tx.product.create({
+      data: {
+        ...productData,
+        categoryId,
+        costPrice: productData.costPrice,
+        salePrice: productData.salePrice,
+        businessId: user.businessId,
+      },
+    });
   });
 
   if (data.currentStock > 0) {
@@ -98,7 +260,8 @@ export async function updateProduct(
   data: {
     name?: string;
     brand?: string;
-    category?: string;
+    categoryId?: string;
+    categoryName?: string;
     style?: string;
     year?: number | null;
     description?: string;
@@ -110,17 +273,37 @@ export async function updateProduct(
     status?: ProductStatus;
   }
 ) {
-  const user = requireOwner(await getCurrentUser());
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
   const existing = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Producto no encontrado");
 
-  const product = await prisma.product.update({
-    where: { id },
-    data,
+  const { categoryName, ...productData } = data;
+
+  const product = await prisma.$transaction(async (tx) => {
+    let categoryId = productData.categoryId;
+
+    if (categoryName !== undefined && !categoryId) {
+      const category = await upsertCategoryByName(
+        tx,
+        user.businessId,
+        categoryName
+      );
+      categoryId = category.id;
+    }
+
+    return tx.product.update({
+      where: { id },
+      data: {
+        ...productData,
+        categoryId,
+      },
+    });
   });
+
   revalidatePath("/productos");
   return serializeData(product);
 }
@@ -190,7 +373,8 @@ export async function importProducts(
     minStock: number;
   }>
 ) {
-  const user = requireOwner(await getCurrentUser());
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
   if (!items.length) {
     return { success: false, error: "No hay productos para importar", count: 0 };
@@ -216,11 +400,17 @@ export async function importProducts(
       const movements = [];
 
       for (const item of items) {
+        const category = await upsertCategoryByName(
+          tx,
+          user.businessId,
+          item.category
+        );
+
         const product = await tx.product.create({
           data: {
             name: item.name,
             brand: item.brand,
-            category: item.category,
+            categoryId: category.id,
             style: item.style,
             year: item.year ?? null,
             productType: parseProductType(item.productType),

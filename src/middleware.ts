@@ -31,6 +31,9 @@ export default withAuth(
     if (path.startsWith("/productos/editar") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
+    if (path.startsWith("/categorias") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
 
     return NextResponse.next();
   },
@@ -51,5 +54,6 @@ export const config = {
     "/ventas/:path*",
     "/usuarios/:path*",
     "/perfil/:path*",
+    "/categorias/:path*",
   ],
 };

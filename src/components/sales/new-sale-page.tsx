@@ -57,7 +57,7 @@ export function NewSalePage({ products }: { products: any[] }) {
     const cats = new Set<string>();
     products.forEach((p) => {
       if (p.status === "ACTIVE" && p.currentStock > 0) {
-        cats.add(p.category);
+        cats.add(p.category?.name);
       }
     });
     return Array.from(cats).sort();
@@ -67,14 +67,14 @@ export function NewSalePage({ products }: { products: any[] }) {
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       if (p.status !== "ACTIVE" || p.currentStock <= 0) return false;
-      if (selectedCategory && p.category !== selectedCategory) return false;
+      if (selectedCategory && p.category?.name !== selectedCategory) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
           p.name?.toLowerCase().includes(q) ||
           p.brand?.toLowerCase().includes(q) ||
           p.style?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q)
+          p.category?.name?.toLowerCase().includes(q)
         );
       }
       return true;

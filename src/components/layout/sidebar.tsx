@@ -15,6 +15,7 @@ import {
   Shield,
   History,
   Building2,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const ownerNavigation = [
   { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
+  { name: "Categorías", href: "/categorias", icon: Tags, tourId: "nav-categorias" as string | undefined },
 ];
 
 const employeeNavigation = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +17,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -44,7 +51,23 @@ import { toast } from "sonner";
 export function ProductsPage({ products, userRole }: { products: any[]; userRole?: string }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const isOwner = userRole === "OWNER";
+
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((p) => {
+      if (p.category?.id && p.category?.name) {
+        map.set(p.category.id, p.category.name);
+      }
+    });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [products]);
+
+  const filteredByCategory = useMemo(() => {
+    if (selectedCategory === "all") return products;
+    return products.filter((p) => p.category?.id === selectedCategory);
+  }, [products, selectedCategory]);
 
   const handleExport = () => {
     const headers = [
@@ -63,7 +86,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
     const rows = products.map((p) => [
       p.name || "",
       p.brand || "",
-      p.category || "",
+      p.category?.name || "",
       p.style || "",
       p.year || "",
       p.productType || "",
@@ -99,14 +122,14 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
     handleSort,
     handleSearch,
   } = useDataTable({
-    data: products,
+    data: filteredByCategory,
     itemsPerPage: 10,
     searchFn: (product, query) => {
       const q = query.toLowerCase();
       return (
         product.name?.toLowerCase().includes(q) ||
         product.brand?.toLowerCase().includes(q) ||
-        product.category?.toLowerCase().includes(q) ||
+        product.category?.name?.toLowerCase().includes(q) ||
         product.style?.toLowerCase().includes(q) ||
         product.brand?.toLowerCase().includes(q)
       );
@@ -119,7 +142,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
         case "brand":
           return (a.brand || "").localeCompare(b.brand || "") * dir;
         case "category":
-          return (a.category || "").localeCompare(b.category || "") * dir;
+          return (a.category?.name || "").localeCompare(b.category?.name || "") * dir;
         case "salePrice":
           return (Number(a.salePrice) - Number(b.salePrice)) * dir;
         case "currentStock":
@@ -174,14 +197,35 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar productos..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-9 h-10"
-          />
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar productos..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+          <Select
+            value={selectedCategory}
+            onValueChange={(value) => {
+              setSelectedCategory(value || "all");
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[200px] h-10">
+              <SelectValue placeholder="Todas las categorías" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las categorías</SelectItem>
+              {categories.map(([id, name]) => (
+                <SelectItem key={id} value={id}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {isOwner && (
           <div className="flex flex-col sm:flex-row gap-2">
@@ -306,7 +350,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                           {product.brand}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {product.category}
+                          {product.category?.name || "—"}
                         </TableCell>
                         <TableCell className="font-medium">
                           {formatPrice(Number(product.salePrice))}
