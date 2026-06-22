@@ -178,7 +178,10 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar categoría" />
+                    <SelectValue placeholder="Seleccionar categoría">
+                      {localCategories.find((cat) => cat.id === selectedCategoryId)?.name ||
+                        "Seleccionar categoría"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {localCategories.map((cat) => (
