@@ -13,6 +13,7 @@ import {
   Trash2,
   Loader2,
   Download,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,6 +231,16 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
         {isOwner && (
           <div className="flex flex-col sm:flex-row gap-2">
             <ProductImportButton />
+            <Link href="/productos/actualizar-precios">
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2 w-full sm:w-auto"
+              >
+                <TrendingUp className="h-4 w-4" />
+                Precios
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="lg"

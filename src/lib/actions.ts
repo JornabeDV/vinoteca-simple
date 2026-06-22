@@ -538,6 +538,7 @@ export async function getSales(search?: string) {
     where,
     include: {
       user: { select: { name: true, email: true } },
+      customer: { select: { name: true } },
       items: {
         include: { product: true },
       },
@@ -551,6 +552,7 @@ export async function getSales(search?: string) {
 const saleWithDetailsArgs = {
   include: {
     user: { select: { name: true, email: true } as const },
+    customer: { select: { name: true, id: true } as const },
     items: { include: { product: true } },
   },
 } satisfies Prisma.SaleFindFirstArgs;
@@ -570,8 +572,17 @@ export async function getSaleById(id: string): Promise<SaleWithDetails | null> {
 export async function createSale(data: {
   userId: string;
   items: { productId: string; quantity: number }[];
+  customerId?: string;
+  isPaid?: boolean;
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
+
+  if (data.customerId) {
+    const customer = await prisma.customer.findFirst({
+      where: { id: data.customerId, businessId: user.businessId },
+    });
+    if (!customer) throw new Error("Cliente no encontrado");
+  }
 
   const saleNumber = `V-${Date.now()}`;
   let totalAmount = 0;
@@ -600,7 +611,9 @@ export async function createSale(data: {
         saleNumber,
         userId: data.userId,
         businessId: user.businessId,
+        customerId: data.customerId,
         totalAmount: 0,
+        isPaid: data.isPaid ?? true,
       },
     });
 
@@ -821,5 +834,249 @@ export async function getDashboardData(chartDays: number = 7) {
       product: topProductDetails.find((p) => p.id === tp.productId),
     })),
     salesTrend,
+  });
+}
+
+// ─── Bulk Price Update Action ───
+
+export async function bulkUpdatePrices(data: {
+  productIds: string[];
+  type: "percentage" | "fixed";
+  value: number;
+  roundTo100?: boolean;
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  if (!data.productIds.length) {
+    throw new Error("Seleccioná al menos un producto");
+  }
+  if (data.value <= 0) {
+    throw new Error("El valor debe ser mayor a cero");
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      id: { in: data.productIds },
+      businessId: user.businessId,
+    },
+  });
+
+  if (products.length !== data.productIds.length) {
+    throw new Error("Algunos productos no fueron encontrados");
+  }
+
+  const updated = await prisma.$transaction(
+    products.map((product) => {
+      let newPrice: number;
+      if (data.type === "percentage") {
+        newPrice = Number(product.salePrice) * (1 + data.value / 100);
+      } else {
+        newPrice = Number(product.salePrice) + data.value;
+      }
+
+      if (data.roundTo100) {
+        newPrice = Math.round(newPrice / 100) * 100;
+      } else {
+        newPrice = Math.round(newPrice);
+      }
+
+      // Ensure minimum sale price
+      if (newPrice < Number(product.costPrice)) {
+        newPrice = Number(product.costPrice);
+      }
+
+      return prisma.product.update({
+        where: { id: product.id },
+        data: { salePrice: newPrice },
+      });
+    })
+  );
+
+  revalidatePath("/productos");
+  revalidatePath("/inventario");
+  revalidatePath("/");
+  return { success: true, count: updated.length };
+}
+
+// ─── Customer Actions ───
+
+export async function getCustomers() {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const customers = await prisma.customer.findMany({
+    where: { businessId: user.businessId },
+    orderBy: { name: "asc" },
+    include: {
+      sales: {
+        where: { isPaid: false },
+        select: { totalAmount: true },
+      },
+      payments: {
+        select: { amount: true },
+      },
+    },
+  });
+
+  const withBalance = customers.map((customer) => {
+    const debt = customer.sales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+    const paid = customer.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    return {
+      ...customer,
+      balance: debt - paid,
+    };
+  });
+
+  return serializeData(withBalance);
+}
+
+export async function getCustomerById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const customer = await prisma.customer.findFirst({
+    where: { id, businessId: user.businessId },
+    include: {
+      sales: {
+        where: { isPaid: false },
+        orderBy: { createdAt: "desc" },
+      },
+      payments: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+  return serializeData(customer);
+}
+
+export async function createCustomer(data: {
+  name: string;
+  email?: string;
+  phone?: string;
+  dni?: string;
+  address?: string;
+  notes?: string;
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const customer = await prisma.customer.create({
+    data: {
+      name: data.name.trim(),
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      dni: data.dni?.trim() || null,
+      address: data.address?.trim() || null,
+      notes: data.notes?.trim() || null,
+      businessId: user.businessId,
+    },
+  });
+
+  revalidatePath("/clientes");
+  return serializeData(customer);
+}
+
+export async function updateCustomer(
+  id: string,
+  data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    dni?: string;
+    address?: string;
+    notes?: string;
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.customer.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Cliente no encontrado");
+
+  const customer = await prisma.customer.update({
+    where: { id },
+    data: {
+      name: data.name?.trim(),
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      dni: data.dni?.trim() || null,
+      address: data.address?.trim() || null,
+      notes: data.notes?.trim() || null,
+    },
+  });
+
+  revalidatePath("/clientes");
+  return serializeData(customer);
+}
+
+export async function deleteCustomer(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.customer.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Cliente no encontrado");
+
+  await prisma.customer.delete({ where: { id } });
+
+  revalidatePath("/clientes");
+  return { success: true };
+}
+
+export async function createPayment(data: {
+  customerId: string;
+  amount: number;
+  notes?: string;
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: data.customerId, businessId: user.businessId },
+  });
+  if (!customer) throw new Error("Cliente no encontrado");
+
+  const payment = await prisma.payment.create({
+    data: {
+      amount: data.amount,
+      notes: data.notes?.trim(),
+      customerId: data.customerId,
+      businessId: user.businessId,
+    },
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${data.customerId}`);
+  return serializeData(payment);
+}
+
+export async function getCustomerBalance(customerId: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const [sales, payments] = await Promise.all([
+    prisma.sale.findMany({
+      where: {
+        customerId,
+        businessId: user.businessId,
+        isPaid: false,
+      },
+    }),
+    prisma.payment.findMany({
+      where: {
+        customerId,
+        businessId: user.businessId,
+      },
+    }),
+  ]);
+
+  const totalDebt = sales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  return serializeData({
+    debt: totalDebt,
+    paid: totalPaid,
+    balance: totalDebt - totalPaid,
   });
 }

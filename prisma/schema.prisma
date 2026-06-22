@@ -48,6 +48,8 @@ model Business {
   users      User[]
   products   Product[]
   categories Category[]
+  customers  Customer[]
+  payments   Payment[]
   sales      Sale[]
   inventoryMovements InventoryMovement[]
 
@@ -144,20 +146,62 @@ model InventoryMovement {
   @@map("inventory_movements")
 }
 
+model Customer {
+  id          String    @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  dni         String?
+  address     String?
+  notes       String?
+  businessId  String    @map("business_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sales       Sale[]
+  payments    Payment[]
+
+  @@index([businessId])
+  @@index([name])
+  @@map("customers")
+}
+
+model Payment {
+  id          String    @id @default(uuid())
+  amount      Decimal   @db.Decimal(10, 2)
+  notes       String?
+  customerId  String    @map("customer_id")
+  businessId  String    @map("business_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([businessId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
 model Sale {
   id            String      @id @default(uuid())
   saleNumber    String      @unique @map("sale_number")
   userId        String      @map("user_id")
   businessId    String      @map("business_id")
+  customerId    String?     @map("customer_id")
   totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
+  isPaid        Boolean     @default(true) @map("is_paid")
   createdAt     DateTime    @default(now()) @map("created_at")
 
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   business      Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer      Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items         SaleItem[]
 
   @@index([userId])
   @@index([businessId])
+  @@index([customerId])
   @@index([createdAt])
   @@map("sales")
 }

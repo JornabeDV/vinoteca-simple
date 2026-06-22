@@ -30,11 +30,13 @@ import { toast } from "sonner";
 export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string }) {
   const isOwner = userRole === "OWNER";
   const handleExport = () => {
-    const headers = ["numero", "fecha", "usuario", "productos", "total"];
+    const headers = ["numero", "fecha", "usuario", "cliente", "estado", "productos", "total"];
     const rows = sales.map((s) => [
       s.saleNumber || "",
       s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
       s.user?.name || s.user?.email || "",
+      s.customer?.name || "",
+      s.isPaid ? "Pagada" : "Cuenta corriente",
       (s.items?.length || 0).toString(),
       s.totalAmount?.toString() || "",
     ]);
@@ -70,7 +72,8 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
       return (
         sale.saleNumber?.toLowerCase().includes(q) ||
         sale.user?.name?.toLowerCase().includes(q) ||
-        sale.user?.email?.toLowerCase().includes(q)
+        sale.user?.email?.toLowerCase().includes(q) ||
+        sale.customer?.name?.toLowerCase().includes(q)
       );
     },
     sortFn: (a, b, sort: SortState) => {
@@ -162,6 +165,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       onSort={handleSort}
                     />
                   </TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>
                     <SortableHeader
                       label="Productos"
@@ -184,7 +188,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
               <TableBody>
                 {paginatedSales.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center">
+                    <TableCell colSpan={7} className="h-32 text-center">
                       <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
                         No se encontraron ventas
@@ -208,6 +212,25 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       </TableCell>
                       <TableCell className="text-sm">
                         {sale.user?.name || sale.user?.email}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {sale.customer ? (
+                          <span>{sale.customer.name}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            sale.isPaid
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {sale.isPaid ? "Pagada" : "Cuenta corriente"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">

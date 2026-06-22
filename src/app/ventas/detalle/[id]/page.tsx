@@ -2,10 +2,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { getSaleById } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, User, Calendar } from "lucide-react";
+import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 
 export default async function SaleDetail({
@@ -42,6 +43,22 @@ export default async function SaleDetail({
                 <User className="h-3.5 w-3.5" />
                 {sale.user?.name || sale.user?.email}
               </span>
+              {sale.customer && (
+                <span className="flex items-center gap-1">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  {sale.customer.name}
+                </span>
+              )}
+              <Badge
+                variant="outline"
+                className={`text-xs ${
+                  sale.isPaid
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}
+              >
+                {sale.isPaid ? "Pagada" : "Cuenta corriente"}
+              </Badge>
             </div>
           </div>
         </div>

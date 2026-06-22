@@ -126,6 +126,23 @@ async function main() {
   const users = [owner, employee1, employee2];
   console.log(`✅ ${users.length} usuarios creados`);
 
+  // ─── CLIENTES ───
+  const customerData = [
+    { name: "Juan Pérez", phone: "11-5555-1111", dni: "30123456", email: "juan.perez@email.com" },
+    { name: "María González", phone: "11-5555-2222", dni: "27123456", email: "maria.gonzalez@email.com" },
+    { name: "Carlos Rodríguez", phone: "11-5555-3333", dni: "25123456" },
+    { name: "Lucía Fernández", phone: "11-5555-4444", dni: "33123456", email: "lucia.fernandez@email.com" },
+    { name: "Roberto Martínez", phone: "11-5555-5555", dni: "20123456" },
+  ];
+
+  const customers: any[] = [];
+  for (const c of customerData) {
+    customers.push(await prisma.customer.create({
+      data: { ...c, businessId: business.id },
+    }));
+  }
+  console.log(`✅ ${customers.length} clientes creados`);
+
   // ─── CATEGORÍAS ───
   const categoryNames = [
     "Vino Tinto",
@@ -307,12 +324,17 @@ async function main() {
       });
     }
 
+    const isAccountSale = Math.random() < 0.2;
+    const customer = isAccountSale ? rand(customers) : null;
+
     await prisma.sale.create({
       data: {
         saleNumber,
         userId: saleUser.id,
         businessId: business.id,
+        customerId: customer?.id,
         totalAmount,
+        isPaid: !isAccountSale,
         createdAt: saleDate,
         items: {
           create: items,
@@ -343,6 +365,29 @@ async function main() {
     saleCount++;
   }
   console.log(`✅ ${saleCount} ventas creadas`);
+
+  // ─── PAGOS DE CLIENTES ───
+  for (const customer of customers) {
+    const unpaidSales = await prisma.sale.findMany({
+      where: { customerId: customer.id, isPaid: false },
+    });
+
+    const totalDebt = unpaidSales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+    if (totalDebt > 0) {
+      // Pagar aproximadamente la mitad de la deuda
+      const paymentAmount = Math.round(totalDebt * 0.5 / 100) * 100;
+      await prisma.payment.create({
+        data: {
+          amount: paymentAmount,
+          notes: "Pago parcial",
+          customerId: customer.id,
+          businessId: business.id,
+          createdAt: randDate(14),
+        },
+      });
+    }
+  }
+  console.log(`✅ Pagos de clientes creados`);
 
   // ─── ALGUNAS COMPRAS RECIENTES PARA REPOBLAR STOCK ───
   const lowStockProducts = await prisma.product.findMany({

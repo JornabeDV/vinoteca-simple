@@ -29,6 +29,15 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { createSale } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
@@ -44,11 +53,19 @@ interface CartItem {
   image?: string;
 }
 
-export function NewSalePage({ products }: { products: any[] }) {
+export function NewSalePage({
+  products,
+  customers = [],
+}: {
+  products: any[];
+  customers?: any[];
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [isAccountSale, setIsAccountSale] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -148,6 +165,10 @@ export function NewSalePage({ products }: { products: any[] }) {
       toast.error("Debes iniciar sesion");
       return;
     }
+    if (isAccountSale && !selectedCustomerId) {
+      toast.error("Seleccioná un cliente para la cuenta corriente");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -157,6 +178,8 @@ export function NewSalePage({ products }: { products: any[] }) {
           productId: item.productId,
           quantity: item.quantity,
         })),
+        customerId: isAccountSale ? selectedCustomerId : undefined,
+        isPaid: !isAccountSale,
       });
       toast.success("Venta registrada exitosamente");
       router.push("/ventas");
@@ -342,6 +365,49 @@ export function NewSalePage({ products }: { products: any[] }) {
             {filteredProducts.length} productos disponibles
           </p>
         </div>
+
+        {/* Customer selection */}
+        {customers.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-border/50 bg-muted/30">
+            <div className="flex-1 w-full sm:w-auto">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Cliente
+              </Label>
+              <Select
+                value={selectedCustomerId}
+                onValueChange={(value) => {
+                  setSelectedCustomerId(value || "");
+                  if (value && !isAccountSale) setIsAccountSale(true);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[280px] bg-background">
+                  <SelectValue placeholder="Seleccionar cliente...">
+                    {customers.find((c) => c.id === selectedCustomerId)?.name ||
+                      "Seleccionar cliente..."}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Venta de contado</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 pt-5">
+              <Checkbox
+                id="account-sale"
+                checked={isAccountSale}
+                onCheckedChange={(checked) => setIsAccountSale(!!checked)}
+              />
+              <Label htmlFor="account-sale" className="text-sm cursor-pointer">
+                Cuenta corriente
+              </Label>
+            </div>
+          </div>
+        )}
 
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-4">

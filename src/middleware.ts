@@ -34,6 +34,12 @@ export default withAuth(
     if (path.startsWith("/categorias") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
+    if (path.startsWith("/clientes") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas", req.url));
+    }
+    if (path.startsWith("/productos/actualizar-precios") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
 
     return NextResponse.next();
   },
@@ -55,5 +61,6 @@ export const config = {
     "/usuarios/:path*",
     "/perfil/:path*",
     "/categorias/:path*",
+    "/clientes/:path*",
   ],
 };
