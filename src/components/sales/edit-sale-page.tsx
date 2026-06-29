@@ -14,7 +14,6 @@ import {
   Loader2,
   Package,
   ArrowRight,
-  History,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -38,10 +37,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { createSale } from "@/lib/actions";
+import { updateSale } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
-import { QuickProductDialog } from "./quick-product-dialog";
 
 interface CartItem {
   productId: string;
@@ -54,11 +52,13 @@ interface CartItem {
   image?: string;
 }
 
-export function NewSalePage({
+export function EditSalePage({
+  sale,
   products,
   customers = [],
   userRole,
 }: {
+  sale: any;
   products: any[];
   customers?: any[];
   userRole?: string;
@@ -67,29 +67,57 @@ export function NewSalePage({
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [isAccountSale, setIsAccountSale] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
+    sale.customerId || ""
+  );
+  const [isAccountSale, setIsAccountSale] = useState(!sale.isPaid);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localProducts, setLocalProducts] = useState<any[]>(products);
 
-  const canCreateProduct = userRole === "OWNER";
+  // Stock ajustado: el stock actual más lo que ya está reservado en esta venta
+  const originalQtyByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of sale.items || []) {
+      map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
+    }
+    return map;
+  }, [sale.items]);
+
+  const adjustedProducts = useMemo(() => {
+    return products.map((p) => ({
+      ...p,
+      adjustedStock: p.currentStock + (originalQtyByProduct.get(p.id) || 0),
+    }));
+  }, [products, originalQtyByProduct]);
+
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    return (sale.items || []).map((item: any) => ({
+      productId: item.productId,
+      name: item.product?.name || "",
+      brand: item.product?.brand || "",
+      style: item.product?.style || "",
+      salePrice: Number(item.unitPrice),
+      quantity: item.quantity,
+      availableStock:
+        (item.product?.currentStock || 0) + item.quantity,
+      image: item.product?.image,
+    }));
+  });
 
   // Extract unique categories for filter chips
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    localProducts.forEach((p) => {
-      if (p.status === "ACTIVE" && p.currentStock > 0) {
+    adjustedProducts.forEach((p) => {
+      if (p.status === "ACTIVE" && p.adjustedStock > 0) {
         cats.add(p.category?.name);
       }
     });
     return Array.from(cats).sort();
-  }, [localProducts]);
+  }, [adjustedProducts]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
-    return localProducts.filter((p) => {
-      if (p.status !== "ACTIVE" || p.currentStock <= 0) return false;
+    return adjustedProducts.filter((p) => {
+      if (p.status !== "ACTIVE" || p.adjustedStock <= 0) return false;
       if (selectedCategory && p.category?.name !== selectedCategory) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -102,17 +130,10 @@ export function NewSalePage({
       }
       return true;
     });
-  }, [localProducts, selectedCategory, search]);
+  }, [adjustedProducts, selectedCategory, search]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
-
-  function handleProductCreated(product: any) {
-    setLocalProducts((prev) => [product, ...prev]);
-    // Highlight the new product in the grid
-    setSearch(product.name);
-    setSelectedCategory(null);
-  }
 
   function addToCart(product: any) {
     setCart((prev) => {
@@ -137,7 +158,7 @@ export function NewSalePage({
           style: product.style,
           salePrice: Number(product.salePrice),
           quantity: 1,
-          availableStock: product.currentStock,
+          availableStock: product.adjustedStock,
           image: product.image,
         },
       ];
@@ -165,10 +186,6 @@ export function NewSalePage({
     setCart((prev) => prev.filter((item) => item.productId !== productId));
   }
 
-  function clearCart() {
-    setCart([]);
-  }
-
   async function handleSubmit() {
     if (cart.length === 0) {
       toast.error("Agrega al menos un producto");
@@ -185,7 +202,7 @@ export function NewSalePage({
 
     setIsSubmitting(true);
     try {
-      await createSale({
+      await updateSale(sale.id, {
         userId: session.user.id,
         items: cart.map((item) => ({
           productId: item.productId,
@@ -194,11 +211,11 @@ export function NewSalePage({
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
       });
-      toast.success("Venta registrada exitosamente");
+      toast.success("Venta actualizada exitosamente");
       router.push("/ventas");
       router.refresh();
     } catch (error: any) {
-      toast.error(error.message || "Error al registrar la venta");
+      toast.error(error.message || "Error al actualizar la venta");
     } finally {
       setIsSubmitting(false);
     }
@@ -300,19 +317,8 @@ export function NewSalePage({
           ) : (
             <Check className="mr-2 h-5 w-5" />
           )}
-          Confirmar Venta
+          Guardar Cambios
         </Button>
-        {cart.length > 0 && (
-          <Button
-            variant="ghost"
-            size="xl"
-            className="w-full text-muted-foreground hover:text-destructive"
-            onClick={clearCart}
-            disabled={isSubmitting}
-          >
-            Cancelar venta
-          </Button>
-        )}
       </div>
     </div>
   );
@@ -334,21 +340,11 @@ export function NewSalePage({
                 autoFocus
               />
             </div>
-            {canCreateProduct && (
-              <QuickProductDialog
-                categories={categories.map((name) => ({
-                  id: localProducts.find((p) => p.category?.name === name)?.category?.id || name,
-                  name,
-                }))}
-                onProductCreated={handleProductCreated}
-              />
-            )}
             <Link
               href="/ventas"
               className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             >
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Historial</span>
+              Cancelar
             </Link>
           </div>
 
@@ -439,31 +435,13 @@ export function NewSalePage({
               <p className="text-sm text-muted-foreground">
                 No se encontraron productos
               </p>
-              {canCreateProduct && (
-                <QuickProductDialog
-                  categories={categories.map((name) => ({
-                    id: localProducts.find((p) => p.category?.name === name)?.category?.id || name,
-                    name,
-                  }))}
-                  onProductCreated={handleProductCreated}
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-4 gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Crear producto rápido
-                  </Button>
-                </QuickProductDialog>
-              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {filteredProducts.map((product) => {
                 const inCart = cart.find((c) => c.productId === product.id);
                 const isLowStock =
-                  product.currentStock <= product.minStock;
+                  product.adjustedStock <= product.minStock;
                 return (
                   <button
                     key={product.id}
@@ -514,7 +492,7 @@ export function NewSalePage({
                               : "text-muted-foreground"
                           }`}
                         >
-                          {product.currentStock} u.
+                          {product.adjustedStock} u.
                         </span>
                       </div>
                     </div>
@@ -543,7 +521,7 @@ export function NewSalePage({
         <div className="px-4 py-3 border-b border-border/50">
           <h3 className="font-heading text-base font-semibold flex items-center gap-2">
             <ShoppingCart className="h-4 w-4 text-[#7b1f3a]" />
-            Venta Actual
+            Editar Venta
             {cartCount > 0 && (
               <Badge variant="secondary" className="text-xs">
                 {cartCount}
@@ -570,7 +548,7 @@ export function NewSalePage({
                   <SheetHeader className="px-4 py-3 border-b border-border/50">
                     <SheetTitle className="flex items-center gap-2">
                       <ShoppingCart className="h-4 w-4 text-[#7b1f3a]" />
-                      Venta Actual
+                      Editar Venta
                     </SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-hidden">
@@ -598,7 +576,7 @@ export function NewSalePage({
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    Cobrar
+                    Guardar
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </>
                 )}

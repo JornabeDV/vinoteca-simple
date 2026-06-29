@@ -81,10 +81,11 @@ Header sticky con:
 ### Flujo de Venta (prioritario)
 1. Usuario entra a la app y aterriza directamente en "Vender"
 2. Busca producto por nombre/bodega/categoría
-3. Selecciona producto → se agrega al carrito
-4. Ajusta cantidades (+/-)
-5. Confirma venta
-6. Sistema: crea sale, items, deduce stock, registra movimiento
+3. Si no lo encuentra, el dueño puede crearlo rápido sin salir de la pantalla de venta
+4. Selecciona producto → se agrega al carrito
+5. Ajusta cantidades (+/-)
+6. Confirma venta
+7. Sistema: crea sale, items, deduce stock, registra movimiento
 
 ### Flujo de Producto
 1. Usuario va a "Productos" → "Nuevo Producto"
@@ -203,6 +204,7 @@ RootLayout
     └── Main Content
         ├── NewSalePage (client) [default landing]
         │   ├── ProductSearch
+        │   ├── QuickProductDialog (OWNER only)
         │   ├── Cart
         │   └── SaleSummary
         ├── SalesPage (client)
