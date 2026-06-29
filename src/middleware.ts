@@ -16,8 +16,8 @@ export default withAuth(
       return NextResponse.redirect(new URL("/admin", req.url));
     }
 
-    // Redirect employees away from dashboard
-    if (path === "/" && token?.role !== "OWNER") {
+    // Dashboard is owner-only
+    if (path.startsWith("/dashboard") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas/nueva", req.url));
     }
 
@@ -55,6 +55,7 @@ export default withAuth(
 export const config = {
   matcher: [
     "/admin/:path*",
+    "/dashboard/:path*",
     "/productos/:path*",
     "/inventario/:path*",
     "/ventas/:path*",

@@ -18,6 +18,14 @@ export const tourSteps: TourStep[] = [
     placement: "center",
   },
   {
+    id: "nav-ventas",
+    title: "Vender",
+    description:
+      "Este es el corazón de la app. Buscás el producto, agregás al carrito y confirmás la venta. El stock se descuenta automáticamente.",
+    target: '[data-tour-desktop="nav-ventas"]',
+    placement: "right",
+  },
+  {
     id: "nav-dashboard",
     title: "Panel General",
     description:
@@ -42,14 +50,6 @@ export const tourSteps: TourStep[] = [
     placement: "right",
   },
   {
-    id: "nav-ventas",
-    title: "Ventas",
-    description:
-      "Registrá ventas de forma simple. Buscás el producto, agregás al carrito y confirmás. El stock se descuenta automáticamente.",
-    target: '[data-tour-desktop="nav-ventas"]',
-    placement: "right",
-  },
-  {
     id: "nav-usuarios",
     title: "Usuarios",
     description:
@@ -63,14 +63,6 @@ export const tourSteps: TourStep[] = [
     description:
       "Desde acá accedés a tu perfil, podés cambiar tu contraseña o cerrar sesión cuando quieras.",
     target: '[data-tour="header-perfil"]',
-    placement: "bottom",
-  },
-  {
-    id: "dashboard-kpis",
-    title: "Tus Números",
-    description:
-      "Estos indicadores te muestran el estado de tu negocio en tiempo real. Filtrá por período para ver tendencias.",
-    target: '[data-tour="dashboard-kpis"]',
     placement: "bottom",
   },
   {

@@ -24,13 +24,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const ownerNavigation = [
-  { name: "Panel general", href: "/", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
   { name: "Vender", href: "/ventas/nueva", icon: ShoppingCart, tourId: "nav-ventas" },
   { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
   { name: "Clientes", href: "/clientes", icon: User, tourId: "nav-clientes" as string | undefined },
   { name: "Categorías", href: "/categorias", icon: Tags, tourId: "nav-categorias" as string | undefined },
+  { name: "Panel general", href: "/dashboard", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
 ];
 
 const employeeNavigation = [
