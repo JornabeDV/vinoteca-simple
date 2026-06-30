@@ -155,23 +155,25 @@ export function CustomerDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-4">
-        <Link href="/clientes">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h2 className="font-heading text-2xl font-bold tracking-tight">
-            {customer.name}
-          </h2>
-          <p className="text-muted-foreground">
-            Detalle de cuenta corriente
-          </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex items-start gap-4 flex-1">
+          <Link href="/clientes">
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-heading text-2xl font-bold tracking-tight break-words">
+              {customer.name}
+            </h2>
+            <p className="text-muted-foreground">
+              Detalle de cuenta corriente
+            </p>
+          </div>
         </div>
         <Button
           onClick={openCreatePayment}
-          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Registrar Pago
@@ -437,6 +439,7 @@ export function CustomerDetailPage({
               <Button
                 type="button"
                 variant="outline"
+                className="max-sm:order-2"
                 onClick={() => setIsPaymentDialogOpen(false)}
               >
                 Cancelar
@@ -444,7 +447,7 @@ export function CustomerDetailPage({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white max-sm:order-1"
               >
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
