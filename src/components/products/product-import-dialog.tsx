@@ -147,7 +147,7 @@ export function ProductImportDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-[#7b1f3a]" />
@@ -281,7 +281,7 @@ export function ProductImportDialog({
               </Button>
             </div>
 
-            <div className="rounded-lg border border-border overflow-hidden max-h-64 overflow-y-auto">
+            <div className="rounded-lg border border-border overflow-hidden max-h-96 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
