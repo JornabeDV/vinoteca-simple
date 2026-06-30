@@ -62,7 +62,7 @@ export default async function UsersPage() {
               Gestiona los usuarios de tu vinoteca
             </p>
           </div>
-          <CreateEmployeeDialog businessId={businessId} />
+          <CreateEmployeeDialog />
         </div>
 
         {business && (
@@ -148,8 +148,6 @@ export default async function UsersPage() {
                             <DeleteUserButton
                               userId={user.id}
                               userName={user.name || user.email}
-                              ownerId={currentUser.id}
-                              businessId={businessId}
                             />
                           )}
                         </TableCell>

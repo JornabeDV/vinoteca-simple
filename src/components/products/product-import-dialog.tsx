@@ -147,7 +147,7 @@ export function ProductImportDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl sm:max-w-[90vw] h-full max-h-full sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col sm:overflow-y-auto rounded-none sm:rounded-xl">
         <DialogHeader>
           <DialogTitle className="font-heading flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-[#7b1f3a]" />
@@ -158,7 +158,8 @@ export function ProductImportDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden sm:block sm:flex-none sm:overflow-visible">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 shrink-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="template" className="gap-1">
               <Download className="h-3.5 w-3.5" />
@@ -255,7 +256,7 @@ export function ProductImportDialog({
 
         {/* Preview */}
         {parsedRows.length > 0 && (
-          <div className="space-y-3">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium">Vista previa</span>
@@ -281,7 +282,7 @@ export function ProductImportDialog({
               </Button>
             </div>
 
-            <div className="rounded-lg border border-border overflow-hidden max-h-96 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-border sm:max-h-96">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -360,19 +361,24 @@ export function ProductImportDialog({
           </div>
         )}
 
+        </div>
+
         {/* Footer */}
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isImporting}
+            className="cursor-pointer"
+            size="lg"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleImport}
+            size="lg"
             disabled={validRows.length === 0 || isImporting}
-            className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+            className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 cursor-pointer"
           >
             {isImporting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

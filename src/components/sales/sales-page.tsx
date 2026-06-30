@@ -27,7 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getPaymentMethodLabel } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
@@ -57,13 +57,13 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
   };
 
   const handleExport = () => {
-    const headers = ["numero", "fecha", "usuario", "cliente", "estado", "productos", "total"];
+    const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "total"];
     const rows = sales.map((s) => [
       s.saleNumber || "",
       s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
       s.user?.name || s.user?.email || "",
       s.customer?.name || "",
-      s.isPaid ? "Pagada" : "Cuenta corriente",
+      getPaymentMethodLabel(s.paymentMethod),
       (s.items?.length || 0).toString(),
       s.totalAmount?.toString() || "",
     ]);
@@ -193,7 +193,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                     />
                   </TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>Pago</TableHead>
                   <TableHead>
                     <SortableHeader
                       label="Productos"
@@ -257,7 +257,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                               : "border-amber-200 bg-amber-50 text-amber-700"
                           }`}
                         >
-                          {sale.isPaid ? "Pagada" : "Cuenta corriente"}
+                          {getPaymentMethodLabel(sale.paymentMethod)}
                         </Badge>
                       </TableCell>
                       <TableCell>

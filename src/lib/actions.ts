@@ -2,7 +2,7 @@
 
 import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
-import { MovementType, ProductStatus, ProductType, Prisma } from "@prisma/client";
+import { MovementType, ProductStatus, ProductType, PaymentMethod, Prisma } from "@prisma/client";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
 
@@ -358,6 +358,168 @@ export async function deleteProduct(id: string) {
   return { success: true };
 }
 
+// ─── Promotion Actions ───
+
+export async function getPromotions(status?: ProductStatus) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const where: any = { businessId: user.businessId };
+  if (status) where.status = status;
+
+  const promotions = await prisma.promotion.findMany({
+    where,
+    include: { items: { include: { product: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return serializeData(promotions);
+}
+
+export async function getPromotionById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const promotion = await prisma.promotion.findFirst({
+    where: { id, businessId: user.businessId },
+    include: { items: { include: { product: true } } },
+  });
+  return serializeData(promotion);
+}
+
+export async function createPromotion(data: {
+  name: string;
+  description?: string;
+  salePrice: number;
+  items: { productId: string; quantity: number }[];
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  if (!data.items.length) throw new Error("La promo debe tener al menos un producto");
+
+  const productIds = data.items.map((i) => i.productId);
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, businessId: user.businessId },
+  });
+  if (products.length !== productIds.length) throw new Error("Uno o más productos no fueron encontrados");
+
+  const promotion = await prisma.promotion.create({
+    data: {
+      name: data.name.trim(),
+      description: data.description?.trim(),
+      salePrice: data.salePrice,
+      businessId: user.businessId,
+      items: {
+        create: data.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      },
+    },
+    include: { items: { include: { product: true } } },
+  });
+
+  revalidatePath("/promos");
+  return serializeData(promotion);
+}
+
+export async function updatePromotion(
+  id: string,
+  data: {
+    name?: string;
+    description?: string;
+    salePrice?: number;
+    status?: ProductStatus;
+    items?: { productId: string; quantity: number }[];
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.promotion.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Promoción no encontrada");
+
+  if (data.items && data.items.length === 0) {
+    throw new Error("La promo debe tener al menos un producto");
+  }
+
+  const promotion = await prisma.$transaction(async (tx) => {
+    if (data.items) {
+      await tx.promotionItem.deleteMany({ where: { promotionId: id } });
+    }
+
+    return tx.promotion.update({
+      where: { id },
+      data: {
+        name: data.name?.trim(),
+        description: data.description?.trim(),
+        salePrice: data.salePrice,
+        status: data.status,
+        items: data.items
+          ? {
+              create: data.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+              })),
+            }
+          : undefined,
+      },
+      include: { items: { include: { product: true } } },
+    });
+  });
+
+  revalidatePath("/promos");
+  return serializeData(promotion);
+}
+
+export async function archivePromotion(id: string) {
+  const user = requireOwner(await getCurrentUser());
+
+  const existing = await prisma.promotion.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Promoción no encontrada");
+
+  const promotion = await prisma.promotion.update({
+    where: { id },
+    data: { status: ProductStatus.ARCHIVED },
+  });
+
+  revalidatePath("/promos");
+  return serializeData(promotion);
+}
+
+export async function activatePromotion(id: string) {
+  const user = requireOwner(await getCurrentUser());
+
+  const existing = await prisma.promotion.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Promoción no encontrada");
+
+  const promotion = await prisma.promotion.update({
+    where: { id },
+    data: { status: ProductStatus.ACTIVE },
+  });
+
+  revalidatePath("/promos");
+  return serializeData(promotion);
+}
+
+export async function deletePromotion(id: string) {
+  const user = requireOwner(await getCurrentUser());
+
+  const existing = await prisma.promotion.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Promoción no encontrada");
+
+  await prisma.promotion.delete({ where: { id } });
+
+  revalidatePath("/promos");
+  return { success: true };
+}
+
 export async function importProducts(
   items: Array<{
     name: string;
@@ -485,12 +647,11 @@ export async function getInventoryMovements(productId?: string) {
 
 export async function adjustStock(data: {
   productId: string;
-  userId: string;
   quantity: number;
   type: MovementType;
   notes?: string;
 }) {
-  const user = requireOwner(await getCurrentUser());
+  const user = checkBusinessAccess(await getCurrentUser());
 
   const product = await prisma.product.findFirst({
     where: { id: data.productId, businessId: user.businessId },
@@ -505,7 +666,7 @@ export async function adjustStock(data: {
     prisma.inventoryMovement.create({
       data: {
         productId: data.productId,
-        userId: data.userId,
+        userId: user.id,
         businessId: user.businessId,
         quantity: data.quantity,
         type: data.type,
@@ -542,6 +703,9 @@ export async function getSales(search?: string) {
       items: {
         include: { product: true },
       },
+      salePromotions: {
+        include: { items: { include: { product: true } } },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 300,
@@ -554,6 +718,7 @@ const saleWithDetailsArgs = {
     user: { select: { name: true, email: true } as const },
     customer: { select: { name: true, id: true } as const },
     items: { include: { product: true } },
+    salePromotions: { include: { items: { include: { product: true } } } },
   },
 } satisfies Prisma.SaleFindFirstArgs;
 
@@ -572,8 +737,10 @@ export async function getSaleById(id: string): Promise<SaleWithDetails | null> {
 export async function createSale(data: {
   userId: string;
   items: { productId: string; quantity: number }[];
+  promotions?: { promotionId: string; quantity: number }[];
   customerId?: string;
   isPaid?: boolean;
+  paymentMethod?: string;
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
 
@@ -587,20 +754,53 @@ export async function createSale(data: {
   const saleNumber = `V-${Date.now()}`;
   let totalAmount = 0;
 
+  const promotions = data.promotions?.length
+    ? await prisma.promotion.findMany({
+        where: {
+          id: { in: data.promotions.map((p) => p.promotionId) },
+          businessId: user.businessId,
+          status: ProductStatus.ACTIVE,
+        },
+        include: { items: true },
+      })
+    : [];
+
+  if (data.promotions && promotions.length !== data.promotions.length) {
+    throw new Error("Una o más promociones no fueron encontradas");
+  }
+
+  const promotionMap = new Map(promotions.map((p) => [p.id, p]));
+
+  // Aggregate stock needed per product (items + promotions)
+  const stockNeeded = new Map<string, number>();
+  for (const item of data.items) {
+    stockNeeded.set(item.productId, (stockNeeded.get(item.productId) || 0) + item.quantity);
+  }
+  for (const promo of data.promotions || []) {
+    const promotion = promotionMap.get(promo.promotionId)!;
+    for (const promoItem of promotion.items) {
+      stockNeeded.set(
+        promoItem.productId,
+        (stockNeeded.get(promoItem.productId) || 0) + promoItem.quantity * promo.quantity
+      );
+    }
+  }
+
+  const productIds = Array.from(stockNeeded.keys());
   const products = await prisma.product.findMany({
-    where: {
-      id: { in: data.items.map((i) => i.productId) },
-      businessId: user.businessId,
-    },
+    where: { id: { in: productIds }, businessId: user.businessId },
   });
+
+  if (products.length !== productIds.length) {
+    throw new Error("Uno o más productos no fueron encontrados");
+  }
 
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   // Validate stock
-  for (const item of data.items) {
-    const product = productMap.get(item.productId);
-    if (!product) throw new Error("Producto no encontrado");
-    if (product.currentStock < item.quantity) {
+  for (const [productId, needed] of stockNeeded.entries()) {
+    const product = productMap.get(productId)!;
+    if (product.currentStock < needed) {
       throw new Error(`Stock insuficiente para ${product.name}`);
     }
   }
@@ -614,9 +814,14 @@ export async function createSale(data: {
         customerId: data.customerId,
         totalAmount: 0,
         isPaid: data.isPaid ?? true,
+        paymentMethod:
+          data.paymentMethod && Object.values(PaymentMethod).includes(data.paymentMethod as PaymentMethod)
+            ? (data.paymentMethod as PaymentMethod)
+            : PaymentMethod.CASH,
       },
     });
 
+    // Create regular sale items
     for (const item of data.items) {
       const product = productMap.get(item.productId)!;
       const unitPrice = product.salePrice;
@@ -632,18 +837,51 @@ export async function createSale(data: {
           totalPrice,
         },
       });
+    }
 
+    // Create promotion sale lines
+    for (const promo of data.promotions || []) {
+      const promotion = promotionMap.get(promo.promotionId)!;
+      const unitPrice = promotion.salePrice;
+      const totalPrice = Number(unitPrice) * promo.quantity;
+      totalAmount += totalPrice;
+
+      const salePromotion = await tx.salePromotion.create({
+        data: {
+          saleId: createdSale.id,
+          promotionId: promotion.id,
+          name: promotion.name,
+          salePrice: unitPrice,
+          quantity: promo.quantity,
+          totalPrice,
+        },
+      });
+
+      for (const promoItem of promotion.items) {
+        await tx.salePromotionItem.create({
+          data: {
+            salePromotionId: salePromotion.id,
+            productId: promoItem.productId,
+            quantity: promoItem.quantity * promo.quantity,
+          },
+        });
+      }
+    }
+
+    // Update stock and create inventory movements
+    for (const [productId, needed] of stockNeeded.entries()) {
+      const product = productMap.get(productId)!;
       await tx.product.update({
-        where: { id: item.productId },
-        data: { currentStock: product.currentStock - item.quantity },
+        where: { id: productId },
+        data: { currentStock: product.currentStock - needed },
       });
 
       await tx.inventoryMovement.create({
         data: {
-          productId: item.productId,
+          productId,
           userId: data.userId,
           businessId: user.businessId,
-          quantity: -item.quantity,
+          quantity: -needed,
           type: MovementType.SALE,
           notes: `Venta ${saleNumber}`,
         },
@@ -655,7 +893,9 @@ export async function createSale(data: {
       data: { totalAmount },
       include: {
         user: { select: { name: true, email: true } },
+        customer: { select: { name: true, id: true } },
         items: { include: { product: true } },
+        salePromotions: { include: { items: { include: { product: true } } } },
       },
     });
   });
@@ -672,15 +912,20 @@ export async function updateSale(
   data: {
     userId: string;
     items: { productId: string; quantity: number }[];
+    promotions?: { promotionId: string; quantity: number }[];
     customerId?: string;
     isPaid?: boolean;
+    paymentMethod?: string;
   }
 ) {
   const user = requireOwner(await getCurrentUser());
 
   const existingSale = await prisma.sale.findFirst({
     where: { id, businessId: user.businessId },
-    include: { items: { include: { product: true } } },
+    include: {
+      items: { include: { product: true } },
+      salePromotions: { include: { items: true } },
+    },
   });
   if (!existingSale) throw new Error("Venta no encontrada");
 
@@ -691,20 +936,28 @@ export async function updateSale(
     if (!customer) throw new Error("Cliente no encontrado");
   }
 
-  if (data.items.length === 0) throw new Error("La venta debe tener al menos un producto");
-
-  const productIds = Array.from(new Set(data.items.map((i) => i.productId)));
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, businessId: user.businessId },
-  });
-
-  if (products.length !== productIds.length) {
-    throw new Error("Uno o más productos no fueron encontrados");
+  if (data.items.length === 0 && (!data.promotions || data.promotions.length === 0)) {
+    throw new Error("La venta debe tener al menos un producto o promo");
   }
 
-  const productMap = new Map(products.map((p) => [p.id, p]));
+  const promotions = data.promotions?.length
+    ? await prisma.promotion.findMany({
+        where: {
+          id: { in: data.promotions.map((p) => p.promotionId) },
+          businessId: user.businessId,
+          status: ProductStatus.ACTIVE,
+        },
+        include: { items: true },
+      })
+    : [];
 
-  // Stock disponible si revertimos los ítems originales de la venta
+  if (data.promotions && promotions.length !== data.promotions.length) {
+    throw new Error("Una o más promociones no fueron encontradas");
+  }
+
+  const promotionMap = new Map(promotions.map((p) => [p.id, p]));
+
+  // Aggregate original stock per product
   const originalQtyByProduct = new Map<string, number>();
   for (const item of existingSale.items) {
     originalQtyByProduct.set(
@@ -712,15 +965,43 @@ export async function updateSale(
       (originalQtyByProduct.get(item.productId) || 0) + item.quantity
     );
   }
-
-  const newQtyByProduct = new Map<string, number>();
-  for (const item of data.items) {
-    newQtyByProduct.set(item.productId, (newQtyByProduct.get(item.productId) || 0) + item.quantity);
+  for (const salePromotion of existingSale.salePromotions) {
+    for (const spi of salePromotion.items) {
+      originalQtyByProduct.set(
+        spi.productId,
+        (originalQtyByProduct.get(spi.productId) || 0) + spi.quantity
+      );
+    }
   }
 
-  // Validar stock considerando que primero se devolverá el stock original
+  // Aggregate new stock needed per product
+  const newQtyByProduct = new Map<string, number>();
+  for (const item of data.items) {
+    newQtyByProduct.set(
+      item.productId,
+      (newQtyByProduct.get(item.productId) || 0) + item.quantity
+    );
+  }
+  for (const promo of data.promotions || []) {
+    const promotion = promotionMap.get(promo.promotionId)!;
+    for (const promoItem of promotion.items) {
+      newQtyByProduct.set(
+        promoItem.productId,
+        (newQtyByProduct.get(promoItem.productId) || 0) + promoItem.quantity * promo.quantity
+      );
+    }
+  }
+
+  const productIds = Array.from(new Set([...originalQtyByProduct.keys(), ...newQtyByProduct.keys()]));
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, businessId: user.businessId },
+  });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  // Validate stock considering original items will be returned first
   for (const [productId, newQty] of newQtyByProduct.entries()) {
-    const product = productMap.get(productId)!;
+    const product = productMap.get(productId);
+    if (!product) throw new Error("Producto no encontrado");
     const originalQty = originalQtyByProduct.get(productId) || 0;
     const availableStock = product.currentStock + originalQty;
     if (availableStock < newQty) {
@@ -748,8 +1029,9 @@ export async function updateSale(
       },
     });
 
-    // 3. Eliminar ítems originales
+    // 3. Eliminar ítems y promos originales
     await tx.saleItem.deleteMany({ where: { saleId: id } });
+    await tx.salePromotion.deleteMany({ where: { saleId: id } });
 
     // 4. Actualizar datos de la venta
     await tx.sale.update({
@@ -757,11 +1039,15 @@ export async function updateSale(
       data: {
         customerId: data.customerId || null,
         isPaid: data.isPaid ?? true,
+        paymentMethod:
+          data.paymentMethod && Object.values(PaymentMethod).includes(data.paymentMethod as PaymentMethod)
+            ? (data.paymentMethod as PaymentMethod)
+            : PaymentMethod.CASH,
         totalAmount: 0,
       },
     });
 
-    // 5. Crear nuevos ítems, descontar stock y registrar movimientos
+    // 5. Crear nuevos ítems
     for (const item of data.items) {
       const product = productMap.get(item.productId)!;
       const unitPrice = product.salePrice;
@@ -777,18 +1063,50 @@ export async function updateSale(
           totalPrice,
         },
       });
+    }
 
+    // 6. Crear nuevas promos
+    for (const promo of data.promotions || []) {
+      const promotion = promotionMap.get(promo.promotionId)!;
+      const unitPrice = promotion.salePrice;
+      const totalPrice = Number(unitPrice) * promo.quantity;
+      totalAmount += totalPrice;
+
+      const salePromotion = await tx.salePromotion.create({
+        data: {
+          saleId: id,
+          promotionId: promotion.id,
+          name: promotion.name,
+          salePrice: unitPrice,
+          quantity: promo.quantity,
+          totalPrice,
+        },
+      });
+
+      for (const promoItem of promotion.items) {
+        await tx.salePromotionItem.create({
+          data: {
+            salePromotionId: salePromotion.id,
+            productId: promoItem.productId,
+            quantity: promoItem.quantity * promo.quantity,
+          },
+        });
+      }
+    }
+
+    // 7. Descontar stock nuevo y registrar movimientos
+    for (const [productId, newQty] of newQtyByProduct.entries()) {
       await tx.product.update({
-        where: { id: item.productId },
-        data: { currentStock: { decrement: item.quantity } },
+        where: { id: productId },
+        data: { currentStock: { decrement: newQty } },
       });
 
       await tx.inventoryMovement.create({
         data: {
-          productId: item.productId,
+          productId,
           userId: data.userId,
           businessId: user.businessId,
-          quantity: -item.quantity,
+          quantity: -newQty,
           type: MovementType.SALE,
           notes: `Venta ${existingSale.saleNumber}`,
         },
@@ -802,6 +1120,7 @@ export async function updateSale(
         user: { select: { name: true, email: true } },
         customer: { select: { name: true, id: true } },
         items: { include: { product: true } },
+        salePromotions: { include: { items: { include: { product: true } } } },
       },
     });
   });
@@ -818,16 +1137,30 @@ export async function deleteSale(id: string) {
 
   const existingSale = await prisma.sale.findFirst({
     where: { id, businessId: user.businessId },
-    include: { items: { include: { product: true } } },
+    include: {
+      items: { include: { product: true } },
+      salePromotions: { include: { items: true } },
+    },
   });
   if (!existingSale) throw new Error("Venta no encontrada");
 
   await prisma.$transaction(async (tx) => {
-    // Revertir stock
+    // Aggregate stock to return per product
+    const qtyByProduct = new Map<string, number>();
     for (const item of existingSale.items) {
+      qtyByProduct.set(item.productId, (qtyByProduct.get(item.productId) || 0) + item.quantity);
+    }
+    for (const salePromotion of existingSale.salePromotions) {
+      for (const spi of salePromotion.items) {
+        qtyByProduct.set(spi.productId, (qtyByProduct.get(spi.productId) || 0) + spi.quantity);
+      }
+    }
+
+    // Revertir stock
+    for (const [productId, quantity] of qtyByProduct.entries()) {
       await tx.product.update({
-        where: { id: item.productId },
-        data: { currentStock: { increment: item.quantity } },
+        where: { id: productId },
+        data: { currentStock: { increment: quantity } },
       });
     }
 
@@ -840,8 +1173,9 @@ export async function deleteSale(id: string) {
       },
     });
 
-    // Eliminar ítems y venta
+    // Eliminar ítems, promos y venta
     await tx.saleItem.deleteMany({ where: { saleId: id } });
+    await tx.salePromotion.deleteMany({ where: { saleId: id } });
     await tx.sale.delete({ where: { id } });
   });
 
@@ -854,7 +1188,7 @@ export async function deleteSale(id: string) {
 // ─── Dashboard Actions ───
 
 export async function getDashboardData(chartDays: number = 7) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1115,7 +1449,7 @@ export async function getCustomers() {
 }
 
 export async function getCustomerById(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const customer = await prisma.customer.findFirst({
     where: { id, businessId: user.businessId },
@@ -1284,7 +1618,7 @@ export async function deletePayment(id: string) {
 }
 
 export async function getCustomerBalance(customerId: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const [sales, payments] = await Promise.all([
     prisma.sale.findMany({

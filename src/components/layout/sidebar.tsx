@@ -16,6 +16,7 @@ import {
   History,
   Building2,
   Tags,
+  Tag,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const ownerNavigation = [
   { name: "Vender", href: "/ventas/nueva", icon: ShoppingCart, tourId: "nav-ventas" },
   { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
+  { name: "Promos", href: "/promos", icon: Tag, tourId: "nav-promos" as string | undefined },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
   { name: "Clientes", href: "/clientes", icon: User, tourId: "nav-clientes" as string | undefined },
   { name: "Categorías", href: "/categorias", icon: Tags, tourId: "nav-categorias" as string | undefined },
@@ -37,6 +39,7 @@ const employeeNavigation = [
   { name: "Vender", href: "/ventas/nueva", icon: ShoppingCart, tourId: "nav-ventas" },
   { name: "Historial", href: "/ventas", icon: History, tourId: "nav-historial" as string | undefined },
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
+  { name: "Promos", href: "/promos", icon: Tag, tourId: "nav-promos" as string | undefined },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
 ];
 

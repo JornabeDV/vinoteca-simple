@@ -37,6 +37,15 @@ enum MovementType {
   CORRECTION
 }
 
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  TRANSFER
+  DIGITAL_WALLET
+  ACCOUNT
+}
+
 model Business {
   id         String         @id @default(uuid())
   name       String
@@ -51,6 +60,7 @@ model Business {
   customers  Customer[]
   payments   Payment[]
   sales      Sale[]
+  promotions Promotion[]
   inventoryMovements InventoryMovement[]
 
   @@map("businesses")
@@ -114,6 +124,8 @@ model Product {
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   saleItems     SaleItem[]
+  promotionItems PromotionItem[]
+  salePromotionItems SalePromotionItem[]
   inventoryMovements InventoryMovement[]
 
   @@index([status])
@@ -192,12 +204,14 @@ model Sale {
   customerId    String?     @map("customer_id")
   totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
   isPaid        Boolean     @default(true) @map("is_paid")
+  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
   createdAt     DateTime    @default(now()) @map("created_at")
 
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   business      Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customer      Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items         SaleItem[]
+  salePromotions SalePromotion[]
 
   @@index([userId])
   @@index([businessId])
@@ -220,4 +234,69 @@ model SaleItem {
   @@index([saleId])
   @@index([productId])
   @@map("sale_items")
+}
+
+model Promotion {
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  salePrice     Decimal       @map("sale_price") @db.Decimal(10, 2)
+  status        ProductStatus @default(ACTIVE)
+  businessId    String        @map("business_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items         PromotionItem[]
+  sales         SalePromotion[]
+
+  @@index([status])
+  @@index([businessId])
+  @@map("promotions")
+}
+
+model PromotionItem {
+  id            String    @id @default(uuid())
+  promotionId   String    @map("promotion_id")
+  productId     String    @map("product_id")
+  quantity      Int
+
+  promotion     Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([productId])
+  @@map("promotion_items")
+}
+
+model SalePromotion {
+  id            String    @id @default(uuid())
+  saleId        String    @map("sale_id")
+  promotionId   String    @map("promotion_id")
+  name          String
+  salePrice     Decimal   @map("sale_price") @db.Decimal(10, 2)
+  quantity      Int
+  totalPrice    Decimal   @map("total_price") @db.Decimal(10, 2)
+
+  sale          Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  promotion     Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  items         SalePromotionItem[]
+
+  @@index([saleId])
+  @@index([promotionId])
+  @@map("sale_promotions")
+}
+
+model SalePromotionItem {
+  id              String        @id @default(uuid())
+  salePromotionId String        @map("sale_promotion_id")
+  productId       String        @map("product_id")
+  quantity        Int
+
+  salePromotion   SalePromotion @relation(fields: [salePromotionId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([salePromotionId])
+  @@index([productId])
+  @@map("sale_promotion_items")
 }

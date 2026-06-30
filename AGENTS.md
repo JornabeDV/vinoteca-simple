@@ -40,6 +40,10 @@ Vender (Home)
 │   ├── Listado con búsqueda/filtros
 │   ├── Crear producto
 │   └── Editar producto
+├── Promos
+│   ├── Listado con búsqueda/filtros
+│   ├── Crear promo (combo de productos + precio)
+│   └── Editar promo
 ├── Inventario
 │   ├── Productos activos
 │   ├── Alertas de stock bajo
@@ -62,6 +66,7 @@ Sidebar fija en desktop (72px), drawer en mobile.
 ├── Vender       [default landing]
 ├── Historial
 ├── Productos
+├── Promos
 ├── Inventario
 ├── Clientes     [OWNER only]
 ├── Categorías   [OWNER only]
@@ -212,6 +217,8 @@ RootLayout
         ├── ProductsPage (client)
         │   └── DataTable
         ├── ProductForm (client)
+        ├── PromosPage (client)
+        │   └── PromotionForm
         ├── InventoryPage (client)
         │   ├── ProductStockTable
         │   ├── LowStockPanel
@@ -234,6 +241,7 @@ src/
 │   ├── page.tsx            # Dashboard
 │   ├── login/page.tsx      # Auth
 │   ├── productos/
+│   ├── promos/
 │   ├── inventario/
 │   ├── ventas/
 │   ├── usuarios/
@@ -244,8 +252,9 @@ src/
 │   ├── layout/             # AppShell, Header, Sidebar
 │   ├── dashboard/          # DashboardPage, SalesChart
 │   ├── products/           # ProductsPage, ProductForm
+│   ├── promos/             # PromosPage, PromotionForm
 │   ├── inventory/          # InventoryPage
-│   └── sales/              # SalesPage, NewSalePage
+│   └── sales/              # SalesPage, NewSalePage, EditSalePage
 ├── lib/
 │   ├── prisma.ts           # Cliente Prisma con adapter pg
 │   ├── auth.ts             # NextAuth config
@@ -271,8 +280,9 @@ src/
 | 6 | CRUD de productos | ✅ |
 | 7 | Gestión de inventario | ✅ |
 | 8 | Registro de ventas | ✅ |
-| 9 | Seed de datos de prueba | ✅ |
-| 10 | Build y validación | ✅ |
+| 9 | Promociones / combos | ✅ |
+| 10 | Seed de datos de prueba | ✅ |
+| 11 | Build y validación | ✅ |
 
 ---
 

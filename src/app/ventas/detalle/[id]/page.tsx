@@ -3,13 +3,13 @@ import { getSaleById } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard, Pencil } from "lucide-react";
+import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteSaleButton } from "@/components/sales/delete-sale-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getPaymentMethodLabel } from "@/lib/utils";
 
 export default async function SaleDetail({
   params,
@@ -61,7 +61,7 @@ export default async function SaleDetail({
                     : "border-amber-200 bg-amber-50 text-amber-700"
                 }`}
               >
-                {sale.isPaid ? "Pagada" : "Cuenta corriente"}
+                {getPaymentMethodLabel(sale.paymentMethod || "CASH")}
               </Badge>
             </div>
           </div>
@@ -107,6 +107,38 @@ export default async function SaleDetail({
                 </div>
               </div>
             ))}
+
+            {sale.salePromotions?.length > 0 && (
+              <>
+                <Separator />
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-[#7b1f3a]" />
+                  <h4 className="font-heading font-semibold">Promociones</h4>
+                </div>
+                {sale.salePromotions.map((sp: any) => (
+                  <div
+                    key={sp.id}
+                    className="flex items-center justify-between rounded-lg border border-border/50 p-4"
+                  >
+                    <div>
+                      <p className="font-medium">{sp.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {sp.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">
+                        {sp.quantity} x {formatPrice(Number(sp.salePrice))}
+                      </p>
+                      <p className="font-semibold text-[#7b1f3a]">
+                        {formatPrice(Number(sp.totalPrice))}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
             <Separator />
             <div className="flex justify-between items-center">
               <span className="font-heading text-lg font-semibold">Total</span>

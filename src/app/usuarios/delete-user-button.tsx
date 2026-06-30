@@ -10,20 +10,16 @@ import { deleteEmployee } from "@/lib/auth-actions";
 export function DeleteUserButton({
   userId,
   userName,
-  ownerId,
-  businessId,
 }: {
   userId: string;
   userName: string;
-  ownerId: string;
-  businessId: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleConfirm() {
     setIsLoading(true);
     try {
-      await deleteEmployee(userId, ownerId, businessId);
+      await deleteEmployee(userId);
       toast.success("Empleado eliminado correctamente");
       window.location.reload();
     } catch (error: any) {
