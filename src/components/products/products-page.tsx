@@ -216,7 +216,12 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
             }}
           >
             <SelectTrigger className="w-full sm:w-[200px] h-10">
-              <SelectValue placeholder="Todas las categorías" />
+              <SelectValue placeholder="Todas las categorías">
+                {selectedCategory === "all"
+                  ? "Todas las categorías"
+                  : categories.find(([id]) => id === selectedCategory)?.[1] ||
+                    selectedCategory}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
