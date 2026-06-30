@@ -63,10 +63,16 @@ async function main() {
   console.log("🌱 Iniciando seed masivo...");
 
   // ─── LIMPIAR DATOS EXISTENTES ───
+  await prisma.salePromotionItem.deleteMany();
+  await prisma.salePromotion.deleteMany();
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.promotionItem.deleteMany();
+  await prisma.promotion.deleteMany();
   await prisma.inventoryMovement.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.category.deleteMany();
   await prisma.user.deleteMany();
   await prisma.business.deleteMany();
 
@@ -255,6 +261,56 @@ async function main() {
   console.log(`✅ ${productsData.length} productos creados`);
 
   const activeProducts = productsData.filter((p) => p.status === ProductStatus.ACTIVE);
+
+  // ─── PROMOCIONES DE EJEMPLO ───
+  const promotionsData = [
+    {
+      id: "promo-1",
+      name: "Combo Fernet + Coca",
+      description: "Fernet Branca 750cc + agua sin gas",
+      salePrice: 8000,
+      status: ProductStatus.ACTIVE,
+      businessId: business.id,
+      items: [
+        { productId: "other-1", quantity: 1 },
+        { productId: "water-1", quantity: 1 },
+      ],
+    },
+    {
+      id: "promo-2",
+      name: "Whisky Premium",
+      description: "Johnnie Walker Black Label + agua sin gas",
+      salePrice: 40000,
+      status: ProductStatus.ACTIVE,
+      businessId: business.id,
+      items: [
+        { productId: "spirit-1", quantity: 1 },
+        { productId: "water-1", quantity: 1 },
+      ],
+    },
+    {
+      id: "promo-3",
+      name: "Pack Cerveza x6",
+      description: "6 Quilmes Clásica",
+      salePrice: 7500,
+      status: ProductStatus.ACTIVE,
+      businessId: business.id,
+      items: [
+        { productId: "beer-1", quantity: 6 },
+      ],
+    },
+  ];
+
+  for (const promo of promotionsData) {
+    const { items, ...promoRest } = promo;
+    await prisma.promotion.create({
+      data: {
+        ...promoRest,
+        items: { create: items },
+      },
+    });
+  }
+  console.log(`✅ ${promotionsData.length} promociones creadas`);
 
   // ─── MOVIMIENTOS DE INVENTARIO INICIALES ───
   for (const p of productsData) {

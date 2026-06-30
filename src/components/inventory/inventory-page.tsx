@@ -235,7 +235,6 @@ export function InventoryPage({
 
       await adjustStock({
         productId: selectedProduct,
-        userId: session.user.id,
         quantity: qty,
         type: movementType,
         notes: notes || undefined,
@@ -268,29 +267,29 @@ export function InventoryPage({
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           {isOwner && (
-            <>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleExport}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Exportar
-              </Button>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger
-                data-tour="inventario-ajustar"
-                render={
-                  <Button
-                    size="lg"
-                    className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Ajustar Stock
-                  </Button>
-                }
-              />
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleExport}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          )}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger
+              data-tour="inventario-ajustar"
+              render={
+                <Button
+                  size="lg"
+                  className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ajustar Stock
+                </Button>
+              }
+            />
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="font-heading">Ajustar Stock</DialogTitle>
@@ -380,8 +379,6 @@ export function InventoryPage({
                 </form>
               </DialogContent>
             </Dialog>
-            </>
-          )}
         </div>
       </div>
 

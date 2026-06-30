@@ -4,6 +4,19 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "./session";
+
+function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  if (!user) throw new Error("No autenticado");
+  if (!user.businessId) throw new Error("No pertenecés a ningún negocio");
+  return user as typeof user & { businessId: string };
+}
+
+function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  const u = checkBusinessAccess(user);
+  if (u.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+  return u;
+}
 
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -103,8 +116,9 @@ export async function createEmployeeByOwner(data: {
   name: string;
   email: string;
   password: string;
-  businessId: string;
 }) {
+  const owner = requireOwner(await getCurrentUser());
+
   const existingUser = await prisma.user.findUnique({
     where: { email: data.email },
   });
@@ -121,7 +135,7 @@ export async function createEmployeeByOwner(data: {
       email: data.email,
       password: hashedPassword,
       role: UserRole.EMPLOYEE,
-      businessId: data.businessId,
+      businessId: owner.businessId,
     },
   });
 
@@ -129,9 +143,11 @@ export async function createEmployeeByOwner(data: {
   return { success: true, userId: user.id };
 }
 
-export async function deleteEmployee(userId: string, ownerId: string, businessId: string) {
+export async function deleteEmployee(userId: string) {
+  const owner = requireOwner(await getCurrentUser());
+
   const target = await prisma.user.findFirst({
-    where: { id: userId, businessId },
+    where: { id: userId, businessId: owner.businessId },
   });
 
   if (!target) {
@@ -142,7 +158,7 @@ export async function deleteEmployee(userId: string, ownerId: string, businessId
     throw new Error("No podés eliminar a un propietario");
   }
 
-  if (target.id === ownerId) {
+  if (target.id === owner.id) {
     throw new Error("No podés eliminarte a vos mismo");
   }
 
@@ -154,17 +170,19 @@ export async function deleteEmployee(userId: string, ownerId: string, businessId
   return { success: true };
 }
 
-export async function updateProfile(userId: string, data: { name: string; email: string }) {
+export async function updateProfile(data: { name: string; email: string }) {
+  const currentUser = checkBusinessAccess(await getCurrentUser());
+
   const existing = await prisma.user.findUnique({
     where: { email: data.email },
   });
 
-  if (existing && existing.id !== userId) {
+  if (existing && existing.id !== currentUser.id) {
     throw new Error("El email ya está en uso por otro usuario");
   }
 
   const user = await prisma.user.update({
-    where: { id: userId },
+    where: { id: currentUser.id },
     data: {
       name: data.name,
       email: data.email,
@@ -175,9 +193,11 @@ export async function updateProfile(userId: string, data: { name: string; email:
   return { success: true, user };
 }
 
-export async function updatePassword(userId: string, data: { currentPassword: string; newPassword: string }) {
+export async function updatePassword(data: { currentPassword: string; newPassword: string }) {
+  const currentUser = checkBusinessAccess(await getCurrentUser());
+
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: currentUser.id },
   });
 
   if (!user || !user.password) {
@@ -192,7 +212,7 @@ export async function updatePassword(userId: string, data: { currentPassword: st
   const hashedPassword = await bcrypt.hash(data.newPassword, 12);
 
   await prisma.user.update({
-    where: { id: userId },
+    where: { id: currentUser.id },
     data: { password: hashedPassword },
   });
 

@@ -37,7 +37,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setIsSavingProfile(true);
 
     try {
-      await updateProfile(user.id, { name, email });
+      await updateProfile({ name, email });
       toast.success("Perfil actualizado correctamente");
       router.refresh();
     } catch (error: any) {
@@ -63,7 +63,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     setIsSavingPassword(true);
 
     try {
-      await updatePassword(user.id, {
+      await updatePassword({
         currentPassword,
         newPassword,
       });

@@ -19,4 +19,17 @@ export function formatNumber(num: number): string {
   return new Intl.NumberFormat("es-AR").format(num);
 }
 
+export const paymentMethodLabels: Record<string, string> = {
+  CASH: "Efectivo",
+  CREDIT_CARD: "Crédito",
+  DEBIT_CARD: "Débito",
+  TRANSFER: "Transferencia",
+  DIGITAL_WALLET: "Billetera digital",
+  ACCOUNT: "Cuenta corriente",
+};
+
+export function getPaymentMethodLabel(method?: string | null): string {
+  return paymentMethodLabels[method || ""] || method || "—";
+}
+
 type Decimal = { toNumber(): number };

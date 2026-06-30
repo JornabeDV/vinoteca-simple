@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { createEmployeeByOwner } from "@/lib/auth-actions";
 
-export function CreateEmployeeDialog({ businessId }: { businessId: string }) {
+export function CreateEmployeeDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,7 +35,7 @@ export function CreateEmployeeDialog({ businessId }: { businessId: string }) {
     setIsLoading(true);
 
     try {
-      await createEmployeeByOwner({ name, email, password, businessId });
+      await createEmployeeByOwner({ name, email, password });
       toast.success("Empleado creado correctamente");
       setName("");
       setEmail("");

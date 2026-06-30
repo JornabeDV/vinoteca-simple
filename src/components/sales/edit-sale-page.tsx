@@ -38,28 +38,32 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { updateSale } from "@/lib/actions";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface CartItem {
-  productId: string;
+  id: string;
+  type: "product" | "promotion";
   name: string;
-  brand: string;
-  style: string;
+  brand?: string;
+  style?: string;
   salePrice: number;
   quantity: number;
   availableStock: number;
   image?: string;
+  promotionItems?: { productId: string; quantity: number }[];
 }
 
 export function EditSalePage({
   sale,
   products,
+  promotions = [],
   customers = [],
   userRole,
 }: {
   sale: any;
   products: any[];
+  promotions?: any[];
   customers?: any[];
   userRole?: string;
 }) {
@@ -71,6 +75,11 @@ export function EditSalePage({
     sale.customerId || ""
   );
   const [isAccountSale, setIsAccountSale] = useState(!sale.isPaid);
+  const [paymentMethod, setPaymentMethod] = useState<keyof typeof paymentMethodLabels>(
+    sale.paymentMethod && Object.keys(paymentMethodLabels).includes(sale.paymentMethod)
+      ? sale.paymentMethod
+      : "CASH"
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Stock ajustado: el stock actual más lo que ya está reservado en esta venta
@@ -79,8 +88,13 @@ export function EditSalePage({
     for (const item of sale.items || []) {
       map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
     }
+    for (const salePromotion of sale.salePromotions || []) {
+      for (const spi of salePromotion.items) {
+        map.set(spi.productId, (map.get(spi.productId) || 0) + spi.quantity);
+      }
+    }
     return map;
-  }, [sale.items]);
+  }, [sale.items, sale.salePromotions]);
 
   const adjustedProducts = useMemo(() => {
     return products.map((p) => ({
@@ -90,17 +104,40 @@ export function EditSalePage({
   }, [products, originalQtyByProduct]);
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    return (sale.items || []).map((item: any) => ({
-      productId: item.productId,
+    const items: CartItem[] = (sale.items || []).map((item: any) => ({
+      id: item.productId,
+      type: "product",
       name: item.product?.name || "",
       brand: item.product?.brand || "",
       style: item.product?.style || "",
       salePrice: Number(item.unitPrice),
       quantity: item.quantity,
-      availableStock:
-        (item.product?.currentStock || 0) + item.quantity,
+      availableStock: (item.product?.currentStock || 0) + item.quantity,
       image: item.product?.image,
     }));
+
+    const promoItems: CartItem[] = (sale.salePromotions || []).map((sp: any) => {
+      const maxQty = sp.items.reduce((min: number, item: any) => {
+        const product = adjustedProducts.find((p) => p.id === item.productId);
+        if (!product) return 0;
+        return Math.min(min, Math.floor(product.adjustedStock / item.quantity));
+      }, Infinity);
+      return {
+        id: sp.promotionId,
+        type: "promotion",
+        name: sp.name,
+        salePrice: Number(sp.salePrice),
+        quantity: sp.quantity,
+        availableStock: maxQty === Infinity ? 0 : maxQty,
+        image: sp.items?.[0]?.product?.image,
+        promotionItems: sp.items.map((i: any) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+        })),
+      };
+    });
+
+    return [...items, ...promoItems];
   });
 
   // Extract unique categories for filter chips
@@ -137,14 +174,14 @@ export function EditSalePage({
 
   function addToCart(product: any) {
     setCart((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
+      const existing = prev.find((item) => item.id === product.id && item.type === "product");
       if (existing) {
         if (existing.quantity >= existing.availableStock) {
           toast.error("Stock insuficiente");
           return prev;
         }
         return prev.map((item) =>
-          item.productId === product.id
+          item.id === product.id && item.type === "product"
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -152,7 +189,8 @@ export function EditSalePage({
       return [
         ...prev,
         {
-          productId: product.id,
+          id: product.id,
+          type: "product",
           name: product.name,
           brand: product.brand,
           style: product.style,
@@ -165,10 +203,10 @@ export function EditSalePage({
     });
   }
 
-  function updateQuantity(productId: string, delta: number) {
+  function updateQuantity(cartId: string, delta: number) {
     setCart((prev) =>
       prev.map((item) => {
-        if (item.productId === productId) {
+        if (item.id === cartId) {
           const newQty = item.quantity + delta;
           if (newQty < 1) return item;
           if (newQty > item.availableStock) {
@@ -182,8 +220,28 @@ export function EditSalePage({
     );
   }
 
-  function removeFromCart(productId: string) {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+  function removeFromCart(cartId: string) {
+    setCart((prev) => prev.filter((item) => item.id !== cartId));
+  }
+
+  function handlePaymentMethodChange(value: keyof typeof paymentMethodLabels) {
+    setPaymentMethod(value);
+    if (value === "ACCOUNT") {
+      setIsAccountSale(true);
+    } else {
+      setIsAccountSale(false);
+      setSelectedCustomerId("");
+    }
+  }
+
+  function handleAccountSaleChange(checked: boolean) {
+    setIsAccountSale(checked);
+    if (checked) {
+      setPaymentMethod("ACCOUNT");
+    } else {
+      setPaymentMethod("CASH");
+      setSelectedCustomerId("");
+    }
   }
 
   async function handleSubmit() {
@@ -204,12 +262,21 @@ export function EditSalePage({
     try {
       await updateSale(sale.id, {
         userId: session.user.id,
-        items: cart.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+        items: cart
+          .filter((item) => item.type === "product")
+          .map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+        promotions: cart
+          .filter((item) => item.type === "promotion")
+          .map((item) => ({
+            promotionId: item.id,
+            quantity: item.quantity,
+          })),
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
+        paymentMethod,
       });
       toast.success("Venta actualizada exitosamente");
       router.push("/ventas");
@@ -239,7 +306,7 @@ export function EditSalePage({
           <div className="space-y-3">
             {cart.map((item) => (
               <div
-                key={item.productId}
+                key={item.id}
                 className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -254,9 +321,16 @@ export function EditSalePage({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    {item.type === "promotion" && (
+                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                        Promo
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {item.brand}
+                    {item.type === "promotion" ? "Combo" : item.brand}
                   </p>
                   <p className="text-sm font-semibold text-[#7b1f3a]">
                     {formatPrice(item.salePrice * item.quantity)}
@@ -266,7 +340,7 @@ export function EditSalePage({
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    onClick={() => updateQuantity(item.productId, -1)}
+                    onClick={() => updateQuantity(item.id, -1)}
                     disabled={item.quantity <= 1}
                   >
                     <Minus className="h-3 w-3" />
@@ -277,7 +351,7 @@ export function EditSalePage({
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    onClick={() => updateQuantity(item.productId, 1)}
+                    onClick={() => updateQuantity(item.id, 1)}
                     disabled={item.quantity >= item.availableStock}
                   >
                     <Plus className="h-3 w-3" />
@@ -287,7 +361,7 @@ export function EditSalePage({
                   variant="ghost"
                   size="icon-sm"
                   className="text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => removeFromCart(item.productId)}
+                  onClick={() => removeFromCart(item.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -298,9 +372,31 @@ export function EditSalePage({
       </div>
 
       <div className="border-t border-border/50 p-4 space-y-3 bg-card">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Forma de pago</Label>
+          <Select
+            value={paymentMethod}
+            onValueChange={(value) =>
+              handlePaymentMethodChange(value as keyof typeof paymentMethodLabels)
+            }
+          >
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue>{getPaymentMethodLabel(paymentMethod)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CASH">Efectivo</SelectItem>
+              <SelectItem value="CREDIT_CARD">Tarjeta de crédito</SelectItem>
+              <SelectItem value="DEBIT_CARD">Tarjeta de débito</SelectItem>
+              <SelectItem value="TRANSFER">Transferencia</SelectItem>
+              <SelectItem value="DIGITAL_WALLET">Billetera digital</SelectItem>
+              <SelectItem value="ACCOUNT">Cuenta corriente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {cartCount} {cartCount === 1 ? "producto" : "productos"}
+            {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
           </span>
           <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
             {formatPrice(total)}
@@ -395,7 +491,7 @@ export function EditSalePage({
                 value={selectedCustomerId}
                 onValueChange={(value) => {
                   setSelectedCustomerId(value || "");
-                  if (value && !isAccountSale) setIsAccountSale(true);
+                  if (value && !isAccountSale) handleAccountSaleChange(true);
                 }}
               >
                 <SelectTrigger className="w-full sm:w-[280px] bg-background">
@@ -418,7 +514,7 @@ export function EditSalePage({
               <Checkbox
                 id="account-sale"
                 checked={isAccountSale}
-                onCheckedChange={(checked) => setIsAccountSale(!!checked)}
+                onCheckedChange={(checked) => handleAccountSaleChange(!!checked)}
               />
               <Label htmlFor="account-sale" className="text-sm cursor-pointer">
                 Cuenta corriente
@@ -439,7 +535,7 @@ export function EditSalePage({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {filteredProducts.map((product) => {
-                const inCart = cart.find((c) => c.productId === product.id);
+                const inCart = cart.find((c) => c.id === product.id && c.type === "product");
                 const isLowStock =
                   product.adjustedStock <= product.minStock;
                 return (
@@ -559,7 +655,7 @@ export function EditSalePage({
 
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground truncate">
-                  {cartCount} {cartCount === 1 ? "producto" : "productos"}
+                  {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
                 </p>
                 <p className="font-heading text-lg font-bold text-[#7b1f3a] truncate">
                   {formatPrice(total)}
