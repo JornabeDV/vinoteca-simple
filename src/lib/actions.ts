@@ -1237,6 +1237,53 @@ export async function createPayment(data: {
   return serializeData(payment);
 }
 
+export async function updatePayment(
+  id: string,
+  data: {
+    amount?: number;
+    notes?: string;
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.payment.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Pago no encontrado");
+
+  const amount = data.amount !== undefined ? Number(data.amount) : Number(existing.amount);
+  if (!amount || amount <= 0) throw new Error("El monto debe ser mayor a cero");
+
+  const payment = await prisma.payment.update({
+    where: { id },
+    data: {
+      amount,
+      notes: data.notes !== undefined ? data.notes?.trim() || null : existing.notes,
+    },
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${existing.customerId}`);
+  return serializeData(payment);
+}
+
+export async function deletePayment(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.payment.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Pago no encontrado");
+
+  await prisma.payment.delete({ where: { id } });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${existing.customerId}`);
+  return { success: true };
+}
+
 export async function getCustomerBalance(customerId: string) {
   const user = checkBusinessAccess(await getCurrentUser());
 
