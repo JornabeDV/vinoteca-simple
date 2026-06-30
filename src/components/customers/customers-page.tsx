@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Users,
   Plus,
@@ -193,14 +192,13 @@ export function CustomersPage({ customers }: { customers: Customer[] }) {
                     const isDeleting = deletingId === customer.id;
 
                     return (
-                      <TableRow key={customer.id}>
+                      <TableRow
+                        key={customer.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => router.push(`/clientes/${customer.id}`)}
+                      >
                         <TableCell>
-                          <Link
-                            href={`/clientes/${customer.id}`}
-                            className="font-medium hover:text-[#7b1f3a] hover:underline"
-                          >
-                            {customer.name}
-                          </Link>
+                          <span className="font-medium">{customer.name}</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col text-sm">
@@ -240,7 +238,10 @@ export function CustomersPage({ customers }: { customers: Customer[] }) {
                               variant="ghost"
                               size="icon"
                               className="text-muted-foreground hover:text-foreground cursor-pointer"
-                              onClick={() => openEdit(customer)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(customer);
+                              }}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -257,6 +258,7 @@ export function CustomersPage({ customers }: { customers: Customer[] }) {
                                   variant="ghost"
                                   size="icon"
                                   className="text-muted-foreground hover:text-destructive cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
