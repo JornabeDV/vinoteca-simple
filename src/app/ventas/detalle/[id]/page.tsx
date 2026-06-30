@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { getSaleById } from "@/lib/actions";
+import { getCurrentUser } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard } from "lucide-react";
+import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeleteSaleButton } from "@/components/sales/delete-sale-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +17,13 @@ export default async function SaleDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const sale = await getSaleById(id);
+  const [sale, user] = await Promise.all([getSaleById(id), getCurrentUser()]);
 
   if (!sale) {
     notFound();
   }
+
+  const isOwner = user?.role === "OWNER";
 
   return (
     <AppShell>
@@ -61,6 +65,17 @@ export default async function SaleDetail({
               </Badge>
             </div>
           </div>
+          {isOwner && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Link href={`/ventas/editar/${sale.id}`}>
+                <Button variant="outline" className="gap-2">
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+              </Link>
+              <DeleteSaleButton saleId={sale.id} saleNumber={sale.saleNumber} variant="button" />
+            </div>
+          )}
         </div>
 
         <Card className="border-border/50">

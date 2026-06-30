@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   ShoppingCart,
@@ -8,6 +9,8 @@ import {
   Search,
   Eye,
   Download,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +29,33 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { deleteSale } from "@/lib/actions";
 
 export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string }) {
+  const router = useRouter();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const isOwner = userRole === "OWNER";
+  const handleDelete = async (id: string) => {
+    setLoadingId(id);
+    try {
+      await deleteSale(id);
+      toast.success("Venta eliminada");
+      router.refresh();
+    } catch {
+      toast.error("Error al eliminar la venta");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const handleExport = () => {
     const headers = ["numero", "fecha", "usuario", "cliente", "estado", "productos", "total"];
     const rows = sales.map((s) => [
@@ -166,6 +193,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                     />
                   </TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead>
                     <SortableHeader
                       label="Productos"
@@ -182,13 +210,13 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       onSort={handleSort}
                     />
                   </TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
+                  <TableHead className="w-[140px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedSales.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">
                         No se encontraron ventas
@@ -241,15 +269,68 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                         {formatPrice(Number(sale.totalAmount))}
                       </TableCell>
                       <TableCell>
-                        <Link href={`/ventas/detalle/${sale.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <div className="flex items-center justify-end gap-1">
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/ventas/detalle/${sale.id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="p-0 cursor-pointer"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>Ver detalle</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {isOwner && (
+                            <>
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="p-0 cursor-pointer"
+                                      onClick={() => router.push(`/ventas/editar/${sale.id}`)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Editar venta</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <ConfirmDialog
+                                title="Eliminar venta"
+                                description={`¿Estás seguro de que querés eliminar la venta ${sale.saleNumber}? Se revertirá el stock de los productos.`}
+                                confirmText="Eliminar"
+                                cancelText="Cancelar"
+                                variant="destructive"
+                                isLoading={loadingId === sale.id}
+                                onConfirm={() => handleDelete(sale.id)}
+                                trigger={
+                                  <TooltipProvider delayDuration={200}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="p-0 cursor-pointer text-muted-foreground hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Eliminar venta</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                }
+                              />
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

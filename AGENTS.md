@@ -32,7 +32,10 @@ Vinoteca Simple sigue una arquitectura **monolito modular** sobre Next.js 15 con
 ## 2. Arquitectura de Información
 
 ```
-Dashboard (Home)
+Vender (Home)
+├── Nueva venta (checkout rápido)
+├── Historial de ventas
+│   └── Detalle de venta
 ├── Productos
 │   ├── Listado con búsqueda/filtros
 │   ├── Crear producto
@@ -41,10 +44,9 @@ Dashboard (Home)
 │   ├── Productos activos
 │   ├── Alertas de stock bajo
 │   └── Historial de movimientos
-├── Ventas
-│   ├── Listado de ventas
-│   ├── Nueva venta (checkout rápido)
-│   └── Detalle de venta
+├── Clientes (solo OWNER)
+├── Categorías (solo OWNER)
+├── Panel general (solo OWNER)
 ├── Usuarios (solo OWNER)
 └── Perfil
 ```
@@ -57,10 +59,13 @@ Sidebar fija en desktop (72px), drawer en mobile.
 
 ```
 [Logo] Vinoteca Simple
-├── Dashboard
+├── Vender       [default landing]
+├── Historial
 ├── Productos
 ├── Inventario
-├── Ventas
+├── Clientes     [OWNER only]
+├── Categorías   [OWNER only]
+├── Panel general [OWNER only]
 ├── Usuarios     [OWNER only]
 └── Cerrar sesión
 ```
@@ -74,12 +79,13 @@ Header sticky con:
 ## 4. Flujos de Usuario
 
 ### Flujo de Venta (prioritario)
-1. Usuario hace clic en "Nueva Venta"
-2. Busca producto por nombre/bodega
-3. Selecciona producto → se agrega al carrito
-4. Ajusta cantidades (+/-)
-5. Confirma venta
-6. Sistema: crea sale, items, deduce stock, registra movimiento
+1. Usuario entra a la app y aterriza directamente en "Vender"
+2. Busca producto por nombre/bodega/categoría
+3. Si no lo encuentra, el dueño puede crearlo rápido sin salir de la pantalla de venta
+4. Selecciona producto → se agrega al carrito
+5. Ajusta cantidades (+/-)
+6. Confirma venta
+7. Sistema: crea sale, items, deduce stock, registra movimiento
 
 ### Flujo de Producto
 1. Usuario va a "Productos" → "Nuevo Producto"
@@ -196,11 +202,13 @@ RootLayout
     ├── Sidebar (client)
     │   └── NavLinks
     └── Main Content
-        ├── DashboardPage (client)
-        │   ├── KpiCards
-        │   ├── SalesChart (Recharts)
-        │   ├── LowStockAlert
-        │   └── RecentSales
+        ├── NewSalePage (client) [default landing]
+        │   ├── ProductSearch
+        │   ├── QuickProductDialog (OWNER only)
+        │   ├── Cart
+        │   └── SaleSummary
+        ├── SalesPage (client)
+        │   └── SaleDetail (server)
         ├── ProductsPage (client)
         │   └── DataTable
         ├── ProductForm (client)
@@ -208,12 +216,12 @@ RootLayout
         │   ├── ProductStockTable
         │   ├── LowStockPanel
         │   └── MovementHistory
-        ├── SalesPage (client)
-        ├── NewSalePage (client)
-        │   ├── ProductSearch
-        │   ├── Cart
-        │   └── SaleSummary
-        └── SaleDetail (server)
+        ├── DashboardPage (client) [OWNER only, /dashboard]
+        │   ├── KpiCards
+        │   ├── SalesChart (Recharts)
+        │   ├── LowStockAlert
+        │   └── RecentSales
+        └── UsersPage (client) [OWNER only]
 ```
 
 ---

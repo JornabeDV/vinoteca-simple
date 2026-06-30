@@ -53,7 +53,8 @@ function getRoleLabel(role?: string) {
 
 function getPageTitle(pathname: string) {
   const map: Record<string, string> = {
-    "/": "Panel general",
+    "/": "Nueva Venta",
+    "/dashboard": "Panel general",
     "/admin": "Panel de administración",
     "/productos": "Productos",
     "/productos/nuevo": "Nuevo Producto",

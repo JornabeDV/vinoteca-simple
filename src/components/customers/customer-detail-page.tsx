@@ -15,6 +15,8 @@ import {
   Calendar,
   ShoppingCart,
   DollarSign,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +39,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createPayment } from "@/lib/actions";
+import { createPayment, updatePayment, deletePayment } from "@/lib/actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -77,11 +80,44 @@ export function CustomerDetailPage({
 }) {
   const router = useRouter();
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const unpaidSales = customer.sales.filter((s) => !s.isPaid);
+
+  function resetForm() {
+    setEditingPayment(null);
+    setPaymentAmount("");
+    setPaymentNotes("");
+  }
+
+  function openCreatePayment() {
+    resetForm();
+    setIsPaymentDialogOpen(true);
+  }
+
+  function openEditPayment(payment: Payment) {
+    setEditingPayment(payment);
+    setPaymentAmount(String(payment.amount));
+    setPaymentNotes(payment.notes || "");
+    setIsPaymentDialogOpen(true);
+  }
+
+  async function handleDeletePayment(id: string) {
+    setDeletingId(id);
+    try {
+      await deletePayment(id);
+      toast.success("Pago eliminado");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Error al eliminar el pago");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function handlePayment(e: React.FormEvent) {
     e.preventDefault();
@@ -93,18 +129,25 @@ export function CustomerDetailPage({
 
     setIsSubmitting(true);
     try {
-      await createPayment({
-        customerId: customer.id,
-        amount,
-        notes: paymentNotes,
-      });
-      toast.success("Pago registrado");
+      if (editingPayment) {
+        await updatePayment(editingPayment.id, {
+          amount,
+          notes: paymentNotes,
+        });
+        toast.success("Pago actualizado");
+      } else {
+        await createPayment({
+          customerId: customer.id,
+          amount,
+          notes: paymentNotes,
+        });
+        toast.success("Pago registrado");
+      }
       setIsPaymentDialogOpen(false);
-      setPaymentAmount("");
-      setPaymentNotes("");
+      resetForm();
       router.refresh();
     } catch (error: any) {
-      toast.error(error.message || "Error al registrar pago");
+      toast.error(error.message || "Error al guardar el pago");
     } finally {
       setIsSubmitting(false);
     }
@@ -127,7 +170,7 @@ export function CustomerDetailPage({
           </p>
         </div>
         <Button
-          onClick={() => setIsPaymentDialogOpen(true)}
+          onClick={openCreatePayment}
           className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -287,12 +330,13 @@ export function CustomerDetailPage({
                   <TableHead>Fecha</TableHead>
                   <TableHead>Notas</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="w-[100px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {customer.payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
                       No hay pagos registrados
                     </TableCell>
                   </TableRow>
@@ -308,6 +352,36 @@ export function CustomerDetailPage({
                       <TableCell className="text-right font-medium text-emerald-700">
                         {formatPrice(Number(payment.amount))}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                            onClick={() => openEditPayment(payment)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <ConfirmDialog
+                            title="Eliminar pago"
+                            description="¿Estás seguro de que querés eliminar este pago?"
+                            confirmText="Eliminar"
+                            cancelText="Cancelar"
+                            variant="destructive"
+                            isLoading={deletingId === payment.id}
+                            onConfirm={() => handleDeletePayment(payment.id)}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -317,12 +391,22 @@ export function CustomerDetailPage({
         </CardContent>
       </Card>
 
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+      <Dialog
+        open={isPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setIsPaymentDialogOpen(open);
+          if (!open) resetForm();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-heading">Registrar Pago</DialogTitle>
+            <DialogTitle className="font-heading">
+              {editingPayment ? "Editar Pago" : "Registrar Pago"}
+            </DialogTitle>
             <DialogDescription>
-              Registrá un pago de {customer.name}.
+              {editingPayment
+                ? `Modificá el pago de ${customer.name}.`
+                : `Registrá un pago de ${customer.name}.`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handlePayment} className="space-y-4">
@@ -365,7 +449,7 @@ export function CustomerDetailPage({
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Registrar Pago
+                {editingPayment ? "Guardar cambios" : "Registrar Pago"}
               </Button>
             </DialogFooter>
           </form>

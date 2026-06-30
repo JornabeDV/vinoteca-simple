@@ -235,6 +235,7 @@ export async function createProduct(data: {
         salePrice: productData.salePrice,
         businessId: user.businessId,
       },
+      include: { category: true },
     });
   });
 
@@ -667,6 +668,190 @@ export async function createSale(data: {
   return serializeData(sale);
 }
 
+export async function updateSale(
+  id: string,
+  data: {
+    userId: string;
+    items: { productId: string; quantity: number }[];
+    customerId?: string;
+    isPaid?: boolean;
+  }
+) {
+  const user = requireOwner(await getCurrentUser());
+
+  const existingSale = await prisma.sale.findFirst({
+    where: { id, businessId: user.businessId },
+    include: { items: { include: { product: true } } },
+  });
+  if (!existingSale) throw new Error("Venta no encontrada");
+
+  if (data.customerId) {
+    const customer = await prisma.customer.findFirst({
+      where: { id: data.customerId, businessId: user.businessId },
+    });
+    if (!customer) throw new Error("Cliente no encontrado");
+  }
+
+  if (data.items.length === 0) throw new Error("La venta debe tener al menos un producto");
+
+  const productIds = Array.from(new Set(data.items.map((i) => i.productId)));
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, businessId: user.businessId },
+  });
+
+  if (products.length !== productIds.length) {
+    throw new Error("Uno o más productos no fueron encontrados");
+  }
+
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  // Stock disponible si revertimos los ítems originales de la venta
+  const originalQtyByProduct = new Map<string, number>();
+  for (const item of existingSale.items) {
+    originalQtyByProduct.set(
+      item.productId,
+      (originalQtyByProduct.get(item.productId) || 0) + item.quantity
+    );
+  }
+
+  const newQtyByProduct = new Map<string, number>();
+  for (const item of data.items) {
+    newQtyByProduct.set(item.productId, (newQtyByProduct.get(item.productId) || 0) + item.quantity);
+  }
+
+  // Validar stock considerando que primero se devolverá el stock original
+  for (const [productId, newQty] of newQtyByProduct.entries()) {
+    const product = productMap.get(productId)!;
+    const originalQty = originalQtyByProduct.get(productId) || 0;
+    const availableStock = product.currentStock + originalQty;
+    if (availableStock < newQty) {
+      throw new Error(`Stock insuficiente para ${product.name}`);
+    }
+  }
+
+  let totalAmount = 0;
+
+  const updatedSale = await prisma.$transaction(async (tx) => {
+    // 1. Revertir stock original
+    for (const [productId, originalQty] of originalQtyByProduct.entries()) {
+      await tx.product.update({
+        where: { id: productId },
+        data: { currentStock: { increment: originalQty } },
+      });
+    }
+
+    // 2. Eliminar movimientos de inventario de la venta original
+    await tx.inventoryMovement.deleteMany({
+      where: {
+        businessId: user.businessId,
+        type: MovementType.SALE,
+        notes: `Venta ${existingSale.saleNumber}`,
+      },
+    });
+
+    // 3. Eliminar ítems originales
+    await tx.saleItem.deleteMany({ where: { saleId: id } });
+
+    // 4. Actualizar datos de la venta
+    await tx.sale.update({
+      where: { id },
+      data: {
+        customerId: data.customerId || null,
+        isPaid: data.isPaid ?? true,
+        totalAmount: 0,
+      },
+    });
+
+    // 5. Crear nuevos ítems, descontar stock y registrar movimientos
+    for (const item of data.items) {
+      const product = productMap.get(item.productId)!;
+      const unitPrice = product.salePrice;
+      const totalPrice = Number(unitPrice) * item.quantity;
+      totalAmount += totalPrice;
+
+      await tx.saleItem.create({
+        data: {
+          saleId: id,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice,
+          totalPrice,
+        },
+      });
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { currentStock: { decrement: item.quantity } },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          userId: data.userId,
+          businessId: user.businessId,
+          quantity: -item.quantity,
+          type: MovementType.SALE,
+          notes: `Venta ${existingSale.saleNumber}`,
+        },
+      });
+    }
+
+    return tx.sale.update({
+      where: { id },
+      data: { totalAmount },
+      include: {
+        user: { select: { name: true, email: true } },
+        customer: { select: { name: true, id: true } },
+        items: { include: { product: true } },
+      },
+    });
+  });
+
+  revalidatePath("/ventas");
+  revalidatePath("/inventario");
+  revalidatePath("/productos");
+  revalidatePath("/");
+  return serializeData(updatedSale);
+}
+
+export async function deleteSale(id: string) {
+  const user = requireOwner(await getCurrentUser());
+
+  const existingSale = await prisma.sale.findFirst({
+    where: { id, businessId: user.businessId },
+    include: { items: { include: { product: true } } },
+  });
+  if (!existingSale) throw new Error("Venta no encontrada");
+
+  await prisma.$transaction(async (tx) => {
+    // Revertir stock
+    for (const item of existingSale.items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { currentStock: { increment: item.quantity } },
+      });
+    }
+
+    // Eliminar movimientos de inventario de la venta
+    await tx.inventoryMovement.deleteMany({
+      where: {
+        businessId: user.businessId,
+        type: MovementType.SALE,
+        notes: `Venta ${existingSale.saleNumber}`,
+      },
+    });
+
+    // Eliminar ítems y venta
+    await tx.saleItem.deleteMany({ where: { saleId: id } });
+    await tx.sale.delete({ where: { id } });
+  });
+
+  revalidatePath("/ventas");
+  revalidatePath("/inventario");
+  revalidatePath("/productos");
+  revalidatePath("/");
+}
+
 // ─── Dashboard Actions ───
 
 export async function getDashboardData(chartDays: number = 7) {
@@ -1050,6 +1235,53 @@ export async function createPayment(data: {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${data.customerId}`);
   return serializeData(payment);
+}
+
+export async function updatePayment(
+  id: string,
+  data: {
+    amount?: number;
+    notes?: string;
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.payment.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Pago no encontrado");
+
+  const amount = data.amount !== undefined ? Number(data.amount) : Number(existing.amount);
+  if (!amount || amount <= 0) throw new Error("El monto debe ser mayor a cero");
+
+  const payment = await prisma.payment.update({
+    where: { id },
+    data: {
+      amount,
+      notes: data.notes !== undefined ? data.notes?.trim() || null : existing.notes,
+    },
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${existing.customerId}`);
+  return serializeData(payment);
+}
+
+export async function deletePayment(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.payment.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Pago no encontrado");
+
+  await prisma.payment.delete({ where: { id } });
+
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${existing.customerId}`);
+  return { success: true };
 }
 
 export async function getCustomerBalance(customerId: string) {
