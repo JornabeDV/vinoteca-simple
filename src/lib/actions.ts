@@ -181,7 +181,6 @@ export async function getProducts(search?: string, status?: ProductStatus) {
     where,
     include: { category: true },
     orderBy: { createdAt: "desc" },
-    take: 300,
   });
   return serializeData(products);
 }
