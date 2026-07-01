@@ -32,4 +32,17 @@ export function getPaymentMethodLabel(method?: string | null): string {
   return paymentMethodLabels[method || ""] || method || "—";
 }
 
+export const productTypeLabels: Record<string, string> = {
+  WINE: "Vino",
+  BEER: "Cerveza",
+  SPIRIT: "Destilado",
+  WATER: "Agua",
+  NON_ALCOHOLIC: "Bebida sin alcohol",
+  OTHER: "Otro",
+};
+
+export function getProductTypeLabel(type?: string | null): string {
+  return productTypeLabels[type || ""] || type || "—";
+}
+
 type Decimal = { toNumber(): number };

@@ -41,6 +41,7 @@ const PRODUCT_TYPE_LABELS: Record<
   BEER: { brand: "Marca", style: "Estilo" },
   SPIRIT: { brand: "Destilería", style: "Tipo" },
   WATER: { brand: "Marca", style: "Tipo" },
+  NON_ALCOHOLIC: { brand: "Marca", style: "Variedad" },
   OTHER: { brand: "Marca / Productor", style: "Tipo / Estilo", year: "Año" },
 };
 
@@ -49,6 +50,7 @@ const PRODUCT_TYPE_OPTIONS = [
   { value: ProductType.BEER, label: "Cerveza" },
   { value: ProductType.SPIRIT, label: "Destilado" },
   { value: ProductType.WATER, label: "Agua" },
+  { value: ProductType.NON_ALCOHOLIC, label: "Bebida sin alcohol" },
   { value: ProductType.OTHER, label: "Otro" },
 ];
 

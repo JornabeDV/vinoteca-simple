@@ -553,7 +553,22 @@ export async function importProducts(
     if (Object.values(ProductType).includes(upper as ProductType)) {
       return upper as ProductType;
     }
-    return ProductType.WINE;
+    const synonyms: Record<string, ProductType> = {
+      VINO: ProductType.WINE,
+      CERVEZA: ProductType.BEER,
+      DESTILADO: ProductType.SPIRIT,
+      AGUA: ProductType.WATER,
+      "SIN ALCOHOL": ProductType.NON_ALCOHOLIC,
+      SIN_ALCOHOL: ProductType.NON_ALCOHOLIC,
+      "NO ALCOHOLIC": ProductType.NON_ALCOHOLIC,
+      "NON ALCOHOLIC": ProductType.NON_ALCOHOLIC,
+      "BEBIDA SIN ALCOHOL": ProductType.NON_ALCOHOLIC,
+      GASEOSA: ProductType.NON_ALCOHOLIC,
+      JUGO: ProductType.NON_ALCOHOLIC,
+      ENERGIZANTE: ProductType.NON_ALCOHOLIC,
+      OTRO: ProductType.OTHER,
+    };
+    return synonyms[upper] || ProductType.WINE;
   };
 
   try {

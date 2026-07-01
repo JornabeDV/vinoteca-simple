@@ -22,6 +22,12 @@ import {
   Wallet,
   Receipt,
   Tag,
+  ChevronDown,
+  User,
+  Beer,
+  Droplets,
+  Flame,
+  GlassWater,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -46,7 +52,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { createSale } from "@/lib/actions";
-import { formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
+import { cn, formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
 import { toast } from "sonner";
 import { QuickProductDialog } from "./quick-product-dialog";
 
@@ -81,6 +87,7 @@ export function NewSalePage({
   const [viewMode, setViewMode] = useState<"products" | "promotions">("products");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [isAccountSale, setIsAccountSale] = useState(false);
+  const [isCustomerExpanded, setIsCustomerExpanded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<keyof typeof paymentMethodLabels>("CASH");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,6 +253,25 @@ export function NewSalePage({
     setPaymentMethod("CASH");
     setIsAccountSale(false);
     setSelectedCustomerId("");
+  }
+
+  function ProductTypeIcon({ type, className }: { type: string; className?: string }) {
+    const props = { className: cn("text-muted-foreground/60", className) };
+    switch (type) {
+      case "BEER":
+        return <Beer {...props} />;
+      case "SPIRIT":
+        return <Flame {...props} />;
+      case "WATER":
+        return <Droplets {...props} />;
+      case "NON_ALCOHOLIC":
+        return <GlassWater {...props} />;
+      case "OTHER":
+        return <Package {...props} />;
+      case "WINE":
+      default:
+        return <Wine {...props} />;
+    }
   }
 
   function handlePaymentMethodChange(value: keyof typeof paymentMethodLabels) {
@@ -461,7 +487,7 @@ export function NewSalePage({
       {/* ─── LEFT: Product Grid ─── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
-        <div className="shrink-0 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-3 space-y-3">
+        <div className="shrink-0 px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 space-y-2 sm:space-y-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -469,7 +495,7 @@ export function NewSalePage({
                 placeholder={viewMode === "products" ? "Buscar productos..." : "Buscar promos..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 h-12 text-base"
+                className="pl-10 h-10 sm:h-12 text-sm sm:text-base"
                 autoFocus
               />
             </div>
@@ -495,7 +521,7 @@ export function NewSalePage({
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode("products")}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium transition-colors ${
                 viewMode === "products"
                   ? "bg-[#7b1f3a] text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -505,7 +531,7 @@ export function NewSalePage({
             </button>
             <button
               onClick={() => setViewMode("promotions")}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium transition-colors ${
                 viewMode === "promotions"
                   ? "bg-[#7b1f3a] text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -520,7 +546,7 @@ export function NewSalePage({
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium transition-colors ${
                   selectedCategory === null
                     ? "bg-[#7b1f3a] text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -534,7 +560,7 @@ export function NewSalePage({
                   onClick={() =>
                     setSelectedCategory(cat === selectedCategory ? null : cat)
                   }
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`shrink-0 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium transition-colors ${
                     selectedCategory === cat
                       ? "bg-[#7b1f3a] text-white"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -555,49 +581,80 @@ export function NewSalePage({
 
         {/* Customer selection */}
         {customers.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-border/50 bg-muted/30">
-            <div className="flex-1 w-full sm:w-auto">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Cliente
-              </Label>
-              <Select
-                value={selectedCustomerId}
-                onValueChange={(value) => {
-                  setSelectedCustomerId(value || "");
-                  if (value && !isAccountSale) handleAccountSaleChange(true);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[280px] bg-background">
-                  <SelectValue placeholder="Seleccionar cliente...">
-                    {customers.find((c) => c.id === selectedCustomerId)?.name ||
-                      "Seleccionar cliente..."}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Venta de contado</SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 pt-5">
-              <Checkbox
-                id="account-sale"
-                checked={isAccountSale}
-                onCheckedChange={(checked) => handleAccountSaleChange(!!checked)}
+          <div className="rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setIsCustomerExpanded((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left outline-none focus:outline-none active:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:bg-muted/50"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium truncate">
+                  {selectedCustomerId
+                    ? customers.find((c) => c.id === selectedCustomerId)?.name
+                    : "Venta de contado"}
+                </span>
+                {isAccountSale && (
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 shrink-0">
+                    Cuenta corriente
+                  </Badge>
+                )}
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${
+                  isCustomerExpanded ? "rotate-180" : ""
+                }`}
               />
-              <Label htmlFor="account-sale" className="text-sm cursor-pointer">
-                Cuenta corriente
-              </Label>
-            </div>
+            </button>
+
+            {isCustomerExpanded && (
+              <div className="border-t border-border/50 p-3 space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <div className="flex-1 w-full sm:w-auto">
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                      Cliente
+                    </Label>
+                    <Select
+                      value={selectedCustomerId}
+                      onValueChange={(value) => {
+                        setSelectedCustomerId(value || "");
+                        if (value && !isAccountSale) handleAccountSaleChange(true);
+                      }}
+                    >
+                      <SelectTrigger className="w-full sm:w-[280px] bg-background !rounded-none sm:!rounded-md">
+                        <SelectValue placeholder="Seleccionar cliente...">
+                          {customers.find((c) => c.id === selectedCustomerId)?.name ||
+                            "Seleccionar cliente..."}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Venta de contado</SelectItem>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 pt-0 sm:pt-5">
+                    <Checkbox
+                      id="account-sale"
+                      checked={isAccountSale}
+                      onCheckedChange={(checked) => handleAccountSaleChange(!!checked)}
+                    />
+                    <Label htmlFor="account-sale" className="text-sm cursor-pointer">
+                      Cuenta corriente
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Product / Promo Grid */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-2 sm:pb-4">
           {viewMode === "products" ? (
             filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -625,7 +682,7 @@ export function NewSalePage({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((c) => c.id === product.id && c.type === "product");
                   const isLowStock = product.currentStock <= product.minStock;
@@ -633,10 +690,10 @@ export function NewSalePage({
                     <button
                       key={product.id}
                       onClick={() => addProductToCart(product)}
-                      className="group relative flex flex-col rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
+                      className="group relative flex flex-row sm:flex-col items-start sm:items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
                     >
-                      {/* Image */}
-                      <div className="flex h-24 w-full items-center justify-center rounded-lg bg-muted mb-2 overflow-hidden">
+                      {/* Icon / Image */}
+                      <div className="flex h-10 w-10 shrink-0 sm:h-28 sm:w-full items-center justify-center rounded-lg sm:rounded-xl bg-muted sm:mb-3 overflow-hidden">
                         {product.image ? (
                           <img
                             src={product.image}
@@ -644,36 +701,34 @@ export function NewSalePage({
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <Wine className="h-8 w-8 text-muted-foreground/40" />
+                          <ProductTypeIcon type={product.productType} className="h-5 w-5 sm:h-10 sm:w-10" />
                         )}
                       </div>
 
                       {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight line-clamp-2">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {product.brand} {product.style ? `· ${product.style}` : ""}
-                        </p>
-                      </div>
-
-                      {/* Price & Stock */}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-                        <span className="text-sm font-bold text-[#7b1f3a]">
-                          {formatPrice(Number(product.salePrice))}
-                        </span>
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex-1 min-w-0 sm:flex sm:flex-col sm:flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm sm:text-base font-medium leading-tight line-clamp-2">
+                            {product.name}
+                          </p>
                           {inCart && (
                             <Badge
                               variant="secondary"
-                              className="h-5 px-1.5 text-[10px] bg-[#7b1f3a]/10 text-[#7b1f3a]"
+                              className="h-5 px-1.5 text-[10px] bg-[#7b1f3a]/10 text-[#7b1f3a] shrink-0"
                             >
                               {inCart.quantity}
                             </Badge>
                           )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {product.brand} {product.style ? `· ${product.style}` : ""}
+                        </p>
+                        <div className="flex items-center justify-between mt-auto pt-2 sm:border-t border-border/30">
+                          <span className="text-sm sm:text-base font-bold text-[#7b1f3a]">
+                            {formatPrice(Number(product.salePrice))}
+                          </span>
                           <span
-                            className={`text-[10px] font-medium ${
+                            className={`text-[10px] sm:text-xs font-medium ${
                               isLowStock ? "text-amber-600" : "text-muted-foreground"
                             }`}
                           >
@@ -706,17 +761,17 @@ export function NewSalePage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
               {filteredPromotions.map((promotion) => {
                 const inCart = cart.find((c) => c.id === promotion.id && c.type === "promotion");
                 return (
                   <button
                     key={promotion.id}
                     onClick={() => addPromotionToCart(promotion)}
-                    className="group relative flex flex-col rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
+                    className="group relative flex flex-row sm:flex-col items-start sm:items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
                   >
-                    {/* Image */}
-                    <div className="flex h-24 w-full items-center justify-center rounded-lg bg-muted mb-2 overflow-hidden">
+                    {/* Icon */}
+                    <div className="flex h-10 w-10 shrink-0 sm:h-28 sm:w-full items-center justify-center rounded-lg sm:rounded-xl bg-muted sm:mb-3 overflow-hidden">
                       {promotion.items?.[0]?.product?.image ? (
                         <img
                           src={promotion.items[0].product.image}
@@ -724,35 +779,33 @@ export function NewSalePage({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <Tag className="h-8 w-8 text-muted-foreground/40" />
+                        <Tag className="h-5 w-5 sm:h-10 sm:w-10 text-muted-foreground/60" />
                       )}
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight line-clamp-2">
-                        {promotion.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                        {promotion.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
-                      </p>
-                    </div>
-
-                    {/* Price & Stock */}
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-                      <span className="text-sm font-bold text-[#7b1f3a]">
-                        {formatPrice(Number(promotion.salePrice))}
-                      </span>
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0 sm:flex sm:flex-col sm:flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm sm:text-base font-medium leading-tight line-clamp-2">
+                          {promotion.name}
+                        </p>
                         {inCart && (
                           <Badge
                             variant="secondary"
-                            className="h-5 px-1.5 text-[10px] bg-[#7b1f3a]/10 text-[#7b1f3a]"
+                            className="h-5 px-1.5 text-[10px] bg-[#7b1f3a]/10 text-[#7b1f3a] shrink-0"
                           >
                             {inCart.quantity}
                           </Badge>
                         )}
-                        <span className="text-[10px] font-medium text-muted-foreground">
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                        {promotion.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto pt-2 sm:border-t border-border/30">
+                        <span className="text-sm sm:text-base font-bold text-[#7b1f3a]">
+                          {formatPrice(Number(promotion.salePrice))}
+                        </span>
+                        <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">
                           {promotion.availableStock} disp.
                         </span>
                       </div>
