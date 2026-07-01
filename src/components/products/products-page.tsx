@@ -46,7 +46,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { archiveProduct, activateProduct, deleteProduct } from "@/lib/actions";
 import { ProductImportButton } from "./product-import-button";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductTypeLabel } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function ProductsPage({ products, userRole }: { products: any[]; userRole?: string }) {
@@ -90,7 +90,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
       p.category?.name || "",
       p.style || "",
       p.year || "",
-      p.productType || "",
+      getProductTypeLabel(p.productType),
       p.costPrice || "",
       p.salePrice || "",
       p.currentStock || "",

@@ -27,6 +27,7 @@ enum ProductType {
   BEER
   SPIRIT
   WATER
+  NON_ALCOHOLIC
   OTHER
 }
 
@@ -197,15 +198,17 @@ model Payment {
 }
 
 model Sale {
-  id            String      @id @default(uuid())
-  saleNumber    String      @unique @map("sale_number")
-  userId        String      @map("user_id")
-  businessId    String      @map("business_id")
-  customerId    String?     @map("customer_id")
-  totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
-  isPaid        Boolean     @default(true) @map("is_paid")
-  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
-  createdAt     DateTime    @default(now()) @map("created_at")
+  id                 String        @id @default(uuid())
+  saleNumber         String        @unique @map("sale_number")
+  userId             String        @map("user_id")
+  businessId         String        @map("business_id")
+  customerId         String?       @map("customer_id")
+  totalAmount        Decimal       @map("total_amount") @db.Decimal(10, 2)
+  discountPercentage Int           @default(0) @map("discount_percentage")
+  discountAmount     Decimal       @default(0) @db.Decimal(10, 2) @map("discount_amount")
+  isPaid             Boolean       @default(true) @map("is_paid")
+  paymentMethod      PaymentMethod @default(CASH) @map("payment_method")
+  createdAt          DateTime      @default(now()) @map("created_at")
 
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   business      Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
