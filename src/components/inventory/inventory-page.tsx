@@ -383,7 +383,7 @@ export function InventoryPage({
       </div>
 
       <Tabs value={activeTab} onValueChange={setTab} className="space-y-6">
-        <TabsList className="w-full max-w-full overflow-x-auto scrollbar-hide">
+        <TabsList className="w-full max-w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
           <TabsTrigger value="productos" className="gap-2">
             <Package className="h-4 w-4" />
             Productos

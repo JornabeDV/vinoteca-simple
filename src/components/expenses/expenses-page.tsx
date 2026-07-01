@@ -323,7 +323,11 @@ export function ExpensesPage({
               <Label className="text-xs text-muted-foreground">Categoría</Label>
               <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value || "all")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
+                  <SelectValue placeholder="Todas">
+                    {categoryFilter === "all"
+                      ? "Todas"
+                      : categories.find((c) => c.id === categoryFilter)?.name || "Todas"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
@@ -559,7 +563,11 @@ export function ExpensesPage({
                 }
               >
                 <SelectTrigger id="expense-category">
-                  <SelectValue placeholder="Sin categoría" />
+                  <SelectValue placeholder="Sin categoría">
+                    {expenseForm.categoryId
+                      ? categories.find((c) => c.id === expenseForm.categoryId)?.name || "Sin categoría"
+                      : "Sin categoría"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Sin categoría</SelectItem>
