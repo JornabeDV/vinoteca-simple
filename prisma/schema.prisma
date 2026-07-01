@@ -47,6 +47,13 @@ enum PaymentMethod {
   ACCOUNT
 }
 
+enum SupplierDebtStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
 model Business {
   id         String         @id @default(uuid())
   name       String
@@ -62,7 +69,13 @@ model Business {
   payments   Payment[]
   sales      Sale[]
   promotions Promotion[]
+  purchases  Purchase[]
+  suppliers  Supplier[]
+  supplierDebts SupplierDebt[]
+  supplierPayments SupplierPayment[]
   inventoryMovements InventoryMovement[]
+  expenseCategories ExpenseCategory[]
+  expenses   Expense[]
 
   @@map("businesses")
 }
@@ -125,6 +138,7 @@ model Product {
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   saleItems     SaleItem[]
+  purchaseItems PurchaseItem[]
   promotionItems PromotionItem[]
   salePromotionItems SalePromotionItem[]
   inventoryMovements InventoryMovement[]
@@ -143,6 +157,7 @@ model InventoryMovement {
   productId     String       @map("product_id")
   userId        String       @map("user_id")
   businessId    String       @map("business_id")
+  purchaseId    String?      @map("purchase_id")
   quantity      Int
   type          MovementType
   notes         String?
@@ -151,12 +166,50 @@ model InventoryMovement {
   product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchase      Purchase?    @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([userId])
   @@index([businessId])
+  @@index([purchaseId])
   @@index([createdAt])
   @@map("inventory_movements")
+}
+
+model ExpenseCategory {
+  id          String    @id @default(uuid())
+  name        String
+  color       String?
+  businessId  String    @map("business_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+
+  @@unique([businessId, name])
+  @@index([businessId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String    @id @default(uuid())
+  concept       String
+  amount        Decimal   @db.Decimal(10, 2)
+  date          DateTime  @default(now()) @db.Date
+  notes         String?
+  categoryId    String?   @map("category_id")
+  businessId    String    @map("business_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category      ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([date])
+  @@index([categoryId])
+  @@map("expenses")
 }
 
 model Customer {
@@ -195,6 +248,123 @@ model Payment {
   @@index([businessId])
   @@index([createdAt])
   @@map("payments")
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String
+  contactName String?  @map("contact_name")
+  phone       String?
+  email       String?
+  cbuAlias    String?  @map("cbu_alias")
+  notes       String?
+  businessId  String   @map("business_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  debts    SupplierDebt[]
+  payments SupplierPayment[]
+  purchases Purchase[]
+
+  @@index([businessId])
+  @@map("suppliers")
+}
+
+model SupplierDebt {
+  id            String             @id @default(uuid())
+  supplierId    String             @map("supplier_id")
+  businessId    String             @map("business_id")
+  purchaseId    String?            @map("purchase_id")
+  invoiceNumber String?            @map("invoice_number")
+  concept       String
+  totalAmount   Decimal            @map("total_amount") @db.Decimal(10, 2)
+  paidAmount    Decimal            @default(0) @map("paid_amount") @db.Decimal(10, 2)
+  issueDate     DateTime           @default(now()) @map("issue_date")
+  dueDate       DateTime?          @map("due_date")
+  status        SupplierDebtStatus @default(PENDING)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  supplier Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  purchase Purchase?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  payments SupplierPayment[]
+
+  @@index([supplierId])
+  @@index([businessId])
+  @@index([purchaseId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("supplier_debts")
+}
+
+model SupplierPayment {
+  id            String    @id @default(uuid())
+  supplierId    String    @map("supplier_id")
+  debtId        String?   @map("debt_id")
+  purchaseId    String?   @map("purchase_id")
+  businessId    String    @map("business_id")
+  amount        Decimal   @db.Decimal(10, 2)
+  paymentDate   DateTime  @default(now()) @map("payment_date")
+  paymentMethod String?   @map("payment_method")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  supplier Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  debt     SupplierDebt?  @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  purchase Purchase?      @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([debtId])
+  @@index([purchaseId])
+  @@index([businessId])
+  @@index([paymentDate])
+  @@map("supplier_payments")
+}
+
+model Purchase {
+  id            String    @id @default(uuid())
+  supplierId    String    @map("supplier_id")
+  businessId    String    @map("business_id")
+  invoiceNumber String?   @map("invoice_number")
+  totalAmount   Decimal   @map("total_amount") @db.Decimal(10, 2)
+  purchaseDate  DateTime  @default(now()) @map("purchase_date")
+  isPaid        Boolean   @default(false) @map("is_paid")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  supplier Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  business Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items    PurchaseItem[]
+  debts    SupplierDebt[]
+  payments SupplierPayment[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([supplierId])
+  @@index([businessId])
+  @@index([purchaseDate])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id            String   @id @default(uuid())
+  purchaseId    String   @map("purchase_id")
+  productId     String   @map("product_id")
+  quantity      Int
+  unitCost      Decimal  @map("unit_cost") @db.Decimal(10, 2)
+  totalCost     Decimal  @map("total_cost") @db.Decimal(10, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
 }
 
 model Sale {

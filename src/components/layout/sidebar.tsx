@@ -18,6 +18,9 @@ import {
   Tags,
   Tag,
   User,
+  Truck,
+  Receipt,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,8 +33,11 @@ const ownerNavigation = [
   { name: "Productos", href: "/productos", icon: Wine, tourId: "nav-productos" },
   { name: "Promos", href: "/promos", icon: Tag, tourId: "nav-promos" as string | undefined },
   { name: "Inventario", href: "/inventario", icon: Package, tourId: "nav-inventario" },
+  { name: "Compras", href: "/compras", icon: ShoppingBag, tourId: "nav-compras" as string | undefined },
   { name: "Clientes", href: "/clientes", icon: User, tourId: "nav-clientes" as string | undefined },
   { name: "Categorías", href: "/categorias", icon: Tags, tourId: "nav-categorias" as string | undefined },
+  { name: "Proveedores", href: "/proveedores", icon: Truck, tourId: "nav-proveedores" as string | undefined },
+  { name: "Gastos", href: "/gastos", icon: Receipt, tourId: "nav-gastos" as string | undefined },
   { name: "Panel general", href: "/dashboard", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
 ];
 

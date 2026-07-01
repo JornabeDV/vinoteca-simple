@@ -14,6 +14,8 @@ import {
   ArrowUpRight,
   BarChart3,
   Receipt,
+  Wallet,
+  PiggyBank,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +27,19 @@ interface DashboardData {
   salesToday: { count: number; revenue: number; change: number };
   salesWeek: { count: number; revenue: number; change: number };
   salesMonth: { count: number; revenue: number; change: number };
+  expensesToday: { total: number; change: number };
+  expensesWeek: { total: number; change: number };
+  expensesMonth: { total: number; change: number };
+  profitToday: { total: number; change: number };
+  profitWeek: { total: number; change: number };
+  profitMonth: { total: number; change: number };
   avgTicket: { today: number; month: number; change: number };
   totalProducts: number;
   totalInventoryValue: number;
   lowStockProducts: any[];
   recentSales: any[];
   topProducts: any[];
-  salesTrend: { date: string; sales: number; revenue: number }[];
+  salesTrend: { date: string; sales: number; revenue: number; expenses: number; profit: number }[];
 }
 
 export function DashboardPage({
@@ -42,7 +50,7 @@ export function DashboardPage({
   chartDays: number;
 }) {
   const router = useRouter();
-  const [chartMode, setChartMode] = useState<"revenue" | "sales">("revenue");
+  const [chartMode, setChartMode] = useState<"revenue" | "sales" | "profit">("revenue");
 
   const timeFilters = [
     { label: "7 días", value: 7 },
@@ -76,11 +84,18 @@ export function DashboardPage({
           icon={DollarSign}
         />
         <KpiCard
-          title="Ticket Promedio"
-          value={formatPrice(data.avgTicket.month)}
-          subtitle={`Hoy: ${formatPrice(data.avgTicket.today)}`}
-          change={data.avgTicket.change}
-          icon={Receipt}
+          title="Gastos del Mes"
+          value={formatPrice(data.expensesMonth.total)}
+          subtitle={`Hoy: ${formatPrice(data.expensesToday.total)}`}
+          change={data.expensesMonth.change}
+          icon={Wallet}
+        />
+        <KpiCard
+          title="Ganancia Neta del Mes"
+          value={formatPrice(data.profitMonth.total)}
+          subtitle={`Hoy: ${formatPrice(data.profitToday.total)}`}
+          change={data.profitMonth.change}
+          icon={PiggyBank}
         />
       </div>
 
@@ -128,6 +143,17 @@ export function DashboardPage({
                   >
                     <BarChart3 className="h-3 w-3" />
                     <span className="hidden sm:inline">Cantidad</span>
+                  </Button>
+                  <Button
+                    variant={chartMode === "profit" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="text-xs gap-1 px-2 sm:px-3"
+                    onClick={() => setChartMode("profit")}
+                    aria-label="Ganancia"
+                    title="Ganancia"
+                  >
+                    <PiggyBank className="h-3 w-3" />
+                    <span className="hidden sm:inline">Ganancia</span>
                   </Button>
                 </div>
               </div>
