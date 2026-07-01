@@ -37,6 +37,15 @@ export default withAuth(
     if (path.startsWith("/clientes") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas", req.url));
     }
+    if (path.startsWith("/proveedores") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas", req.url));
+    }
+    if (path.startsWith("/gastos") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas", req.url));
+    }
+    if (path.startsWith("/compras") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas", req.url));
+    }
     if (path.startsWith("/productos/actualizar-precios") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
@@ -63,5 +72,8 @@ export const config = {
     "/perfil/:path*",
     "/categorias/:path*",
     "/clientes/:path*",
+    "/proveedores/:path*",
+    "/gastos/:path*",
+    "/compras/:path*",
   ],
 };

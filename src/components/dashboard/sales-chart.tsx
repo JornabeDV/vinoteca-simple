@@ -14,10 +14,12 @@ export function SalesChart({
   data,
   mode,
 }: {
-  data: { date: string; sales: number; revenue: number }[];
-  mode: "revenue" | "sales";
+  data: { date: string; sales: number; revenue: number; expenses: number; profit: number }[];
+  mode: "revenue" | "sales" | "profit";
 }) {
   const isRevenue = mode === "revenue";
+  const isSales = mode === "sales";
+  const isProfit = mode === "profit";
 
   return (
     <div className="h-[300px] w-full">
@@ -36,7 +38,7 @@ export function SalesChart({
             tickLine={false}
             tick={{ fontSize: 11, fill: "#78716c" }}
             tickFormatter={(value) =>
-              isRevenue ? formatCurrency(Number(value)) : String(value)
+              isSales ? String(value) : formatCurrency(Number(value))
             }
           />
           <Tooltip
@@ -45,20 +47,47 @@ export function SalesChart({
               border: "1px solid #e7e5e4",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
             }}
-            formatter={(value) => [
-              isRevenue
-                ? `$${Number(value).toLocaleString("es-AR")}`
-                : String(value),
-              isRevenue ? "Ingresos" : "Ventas",
+            formatter={(value, name) => [
+              isSales
+                ? String(value)
+                : `$${Number(value).toLocaleString("es-AR")}`,
+              String(name),
             ]}
             labelFormatter={(label) => label}
           />
-          <Bar
-            dataKey={isRevenue ? "revenue" : "sales"}
-            fill="#7b1f3a"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={40}
-          />
+          {isProfit ? (
+            <>
+              <Bar
+                dataKey="revenue"
+                name="Ingresos"
+                fill="#7b1f3a"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={30}
+              />
+              <Bar
+                dataKey="expenses"
+                name="Gastos"
+                fill="#dc2626"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={30}
+              />
+              <Bar
+                dataKey="profit"
+                name="Ganancia neta"
+                fill="#16a34a"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={30}
+              />
+            </>
+          ) : (
+            <Bar
+              dataKey={isRevenue ? "revenue" : "sales"}
+              name={isRevenue ? "Ingresos" : "Ventas"}
+              fill="#7b1f3a"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+            />
+          )}
         </BarChart>
       </ResponsiveContainer>
     </div>

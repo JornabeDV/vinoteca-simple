@@ -57,7 +57,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
   };
 
   const handleExport = () => {
-    const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "total"];
+    const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "descuento", "total"];
     const rows = sales.map((s) => [
       s.saleNumber || "",
       s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
@@ -65,6 +65,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
       s.customer?.name || "",
       getPaymentMethodLabel(s.paymentMethod),
       (s.items?.length || 0).toString(),
+      `${s.discountPercentage || 0}%`,
       s.totalAmount?.toString() || "",
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");

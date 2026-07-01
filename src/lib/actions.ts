@@ -1220,6 +1220,214 @@ export async function deleteSale(id: string) {
   revalidatePath("/");
 }
 
+// ─── Expense Actions ───
+
+export async function getExpenseCategories() {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const categories = await prisma.expenseCategory.findMany({
+    where: { businessId: user.businessId },
+    orderBy: { name: "asc" },
+    include: {
+      _count: {
+        select: { expenses: true },
+      },
+    },
+  });
+  return serializeData(categories);
+}
+
+export async function getExpenseCategoryById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const category = await prisma.expenseCategory.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  return serializeData(category);
+}
+
+export async function createExpenseCategory(data: { name: string; color?: string }) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const category = await prisma.expenseCategory.create({
+    data: {
+      name: data.name.trim(),
+      color: data.color?.trim(),
+      businessId: user.businessId,
+    },
+  });
+
+  revalidatePath("/gastos");
+  return serializeData(category);
+}
+
+export async function updateExpenseCategory(
+  id: string,
+  data: { name?: string; color?: string }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.expenseCategory.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Categoría no encontrada");
+
+  const category = await prisma.expenseCategory.update({
+    where: { id },
+    data: {
+      name: data.name?.trim(),
+      color: data.color?.trim(),
+    },
+  });
+
+  revalidatePath("/gastos");
+  return serializeData(category);
+}
+
+export async function deleteExpenseCategory(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.expenseCategory.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Categoría no encontrada");
+
+  await prisma.expenseCategory.delete({ where: { id } });
+
+  revalidatePath("/gastos");
+  return { success: true };
+}
+
+export async function getExpenses(search?: string, categoryId?: string, from?: string, to?: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const where: any = { businessId: user.businessId };
+  if (search) {
+    where.concept = { contains: search, mode: "insensitive" };
+  }
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+  if (from || to) {
+    where.date = {};
+    if (from) where.date.gte = new Date(from);
+    if (to) where.date.lte = new Date(to);
+  }
+
+  const expenses = await prisma.expense.findMany({
+    where,
+    include: { category: true },
+    orderBy: { date: "desc" },
+    take: 500,
+  });
+  return serializeData(expenses);
+}
+
+export async function getExpenseById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  const expense = await prisma.expense.findFirst({
+    where: { id, businessId: user.businessId },
+    include: { category: true },
+  });
+  return serializeData(expense);
+}
+
+export async function createExpense(data: {
+  concept: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  categoryId?: string;
+}) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  if (data.categoryId) {
+    const category = await prisma.expenseCategory.findFirst({
+      where: { id: data.categoryId, businessId: user.businessId },
+    });
+    if (!category) throw new Error("Categoría no encontrada");
+  }
+
+  const expense = await prisma.expense.create({
+    data: {
+      concept: data.concept.trim(),
+      amount: data.amount,
+      date: new Date(data.date),
+      notes: data.notes?.trim() || null,
+      categoryId: data.categoryId || null,
+      businessId: user.businessId,
+    },
+    include: { category: true },
+  });
+
+  revalidatePath("/gastos");
+  revalidatePath("/dashboard");
+  return serializeData(expense);
+}
+
+export async function updateExpense(
+  id: string,
+  data: {
+    concept?: string;
+    amount?: number;
+    date?: string;
+    notes?: string;
+    categoryId?: string | null;
+  }
+) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.expense.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Gasto no encontrado");
+
+  if (data.categoryId) {
+    const category = await prisma.expenseCategory.findFirst({
+      where: { id: data.categoryId, businessId: user.businessId },
+    });
+    if (!category) throw new Error("Categoría no encontrada");
+  }
+
+  const expense = await prisma.expense.update({
+    where: { id },
+    data: {
+      concept: data.concept?.trim(),
+      amount: data.amount,
+      date: data.date ? new Date(data.date) : undefined,
+      notes: data.notes !== undefined ? data.notes?.trim() || null : undefined,
+      categoryId: data.categoryId !== undefined ? data.categoryId || null : undefined,
+    },
+    include: { category: true },
+  });
+
+  revalidatePath("/gastos");
+  revalidatePath("/dashboard");
+  return serializeData(expense);
+}
+
+export async function deleteExpense(id: string) {
+  const user = await verifyBusinessAccess(await getCurrentUser());
+  if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  const existing = await prisma.expense.findFirst({
+    where: { id, businessId: user.businessId },
+  });
+  if (!existing) throw new Error("Gasto no encontrado");
+
+  await prisma.expense.delete({ where: { id } });
+
+  revalidatePath("/gastos");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 // ─── Dashboard Actions ───
 
 export async function getDashboardData(chartDays: number = 7) {
@@ -1246,6 +1454,12 @@ export async function getDashboardData(chartDays: number = 7) {
     salesYesterday,
     salesLastWeek,
     salesLastMonth,
+    expensesToday,
+    expensesWeek,
+    expensesMonth,
+    expensesYesterday,
+    expensesLastWeek,
+    expensesLastMonth,
     totalProducts,
     lowStockProducts,
     recentSales,
@@ -1271,6 +1485,24 @@ export async function getDashboardData(chartDays: number = 7) {
     }),
     prisma.sale.findMany({
       where: { businessId: user.businessId, createdAt: { gte: startOfLastMonth, lt: startOfMonth } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfDay } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfWeek } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfMonth } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfYesterday, lt: startOfDay } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfLastWeek, lt: startOfWeek } },
+    }),
+    prisma.expense.findMany({
+      where: { businessId: user.businessId, date: { gte: startOfLastMonth, lt: startOfMonth } },
     }),
     prisma.product.count({
       where: { businessId: user.businessId, status: ProductStatus.ACTIVE },
@@ -1321,6 +1553,20 @@ export async function getDashboardData(chartDays: number = 7) {
   const revenueLastWeek = salesLastWeek.reduce((sum, s) => sum + Number(s.totalAmount), 0);
   const revenueLastMonth = salesLastMonth.reduce((sum, s) => sum + Number(s.totalAmount), 0);
 
+  const expensesTodayTotal = expensesToday.reduce((sum, e) => sum + Number(e.amount), 0);
+  const expensesWeekTotal = expensesWeek.reduce((sum, e) => sum + Number(e.amount), 0);
+  const expensesMonthTotal = expensesMonth.reduce((sum, e) => sum + Number(e.amount), 0);
+  const expensesYesterdayTotal = expensesYesterday.reduce((sum, e) => sum + Number(e.amount), 0);
+  const expensesLastWeekTotal = expensesLastWeek.reduce((sum, e) => sum + Number(e.amount), 0);
+  const expensesLastMonthTotal = expensesLastMonth.reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const profitToday = revenueToday - expensesTodayTotal;
+  const profitWeek = revenueWeek - expensesWeekTotal;
+  const profitMonth = revenueMonth - expensesMonthTotal;
+  const profitYesterday = revenueYesterday - expensesYesterdayTotal;
+  const profitLastWeek = revenueLastWeek - expensesLastWeekTotal;
+  const profitLastMonth = revenueLastMonth - expensesLastMonthTotal;
+
   const avgTicketToday = salesToday.length > 0 ? revenueToday / salesToday.length : 0;
   const avgTicketYesterday = salesYesterday.length > 0 ? revenueYesterday / salesYesterday.length : 0;
   const avgTicketMonth = salesMonth.length > 0 ? revenueMonth / salesMonth.length : 0;
@@ -1343,16 +1589,28 @@ export async function getDashboardData(chartDays: number = 7) {
     trendDates.map(async (date) => {
       const nextDay = new Date(date);
       nextDay.setDate(date.getDate() + 1);
-      const daySales = await prisma.sale.findMany({
-        where: {
-          businessId: user.businessId,
-          createdAt: { gte: date, lt: nextDay },
-        },
-      });
+      const [daySales, dayExpenses] = await Promise.all([
+        prisma.sale.findMany({
+          where: {
+            businessId: user.businessId,
+            createdAt: { gte: date, lt: nextDay },
+          },
+        }),
+        prisma.expense.findMany({
+          where: {
+            businessId: user.businessId,
+            date: { gte: date, lt: nextDay },
+          },
+        }),
+      ]);
+      const revenue = daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+      const expenses = dayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
       return {
         date: date.toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
         sales: daySales.length,
-        revenue: daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0),
+        revenue,
+        expenses,
+        profit: revenue - expenses,
       };
     })
   );
@@ -1372,6 +1630,30 @@ export async function getDashboardData(chartDays: number = 7) {
       count: salesMonth.length,
       revenue: revenueMonth,
       change: pctChange(revenueMonth, revenueLastMonth),
+    },
+    expensesToday: {
+      total: expensesTodayTotal,
+      change: pctChange(expensesTodayTotal, expensesYesterdayTotal),
+    },
+    expensesWeek: {
+      total: expensesWeekTotal,
+      change: pctChange(expensesWeekTotal, expensesLastWeekTotal),
+    },
+    expensesMonth: {
+      total: expensesMonthTotal,
+      change: pctChange(expensesMonthTotal, expensesLastMonthTotal),
+    },
+    profitToday: {
+      total: profitToday,
+      change: pctChange(profitToday, profitYesterday),
+    },
+    profitWeek: {
+      total: profitWeek,
+      change: pctChange(profitWeek, profitLastWeek),
+    },
+    profitMonth: {
+      total: profitMonth,
+      change: pctChange(profitMonth, profitLastMonth),
     },
     avgTicket: {
       today: avgTicketToday,
