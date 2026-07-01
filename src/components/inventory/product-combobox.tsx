@@ -67,7 +67,7 @@ export function ProductCombobox({
         )}
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popper-anchor-width] p-0" align="start">
+      <PopoverContent className="w-[--radix-popper-anchor-width] max-w-[95vw] p-0" align="start">
         <Command
           filter={(value, search) => {
             const product = products.find((p) => p.id === value);

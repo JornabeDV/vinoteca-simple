@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { createPurchase } from "@/lib/purchase-actions";
 import { formatPrice } from "@/lib/utils";
+import { ProductCombobox } from "@/components/inventory/product-combobox";
 
 interface PurchaseFormProps {
   suppliers: any[];
@@ -134,7 +135,9 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
               <Label>Proveedor *</Label>
               <Select value={supplierId} onValueChange={(v) => setSupplierId(v || "")}>
                 <SelectTrigger className="w-full bg-background">
-                  <SelectValue placeholder="Seleccionar proveedor" />
+                  <SelectValue placeholder="Seleccionar proveedor">
+                    {suppliers.find((s) => s.id === supplierId)?.name || "Seleccionar proveedor"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s) => (
@@ -186,21 +189,12 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
               >
                 <div className="sm:col-span-5 space-y-2">
                   <Label className="text-xs">Producto *</Label>
-                  <Select
+                  <ProductCombobox
+                    products={activeProducts}
                     value={item.productId}
-                    onValueChange={(v) => updateItem(item.id, "productId", v)}
-                  >
-                    <SelectTrigger className="w-full bg-background">
-                      <SelectValue placeholder="Seleccionar producto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeProducts.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} ({p.currentStock} u.)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => updateItem(item.id, "productId", v)}
+                    placeholder="Seleccionar producto"
+                  />
                 </div>
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-xs">Cantidad *</Label>
