@@ -14,6 +14,7 @@ import {
   Loader2,
   Download,
   TrendingUp,
+  Martini,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -348,6 +349,8 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                 alt={product.name}
                                 className="h-10 w-10 rounded-lg object-cover"
                               />
+                            ) : product.category?.name?.toLowerCase() === "aperitivo" ? (
+                              <Martini className="h-5 w-5 text-muted-foreground" />
                             ) : (
                               <Wine className="h-5 w-5 text-muted-foreground" />
                             )}

@@ -756,6 +756,7 @@ export async function createSale(data: {
   customerId?: string;
   isPaid?: boolean;
   paymentMethod?: string;
+  discountPercentage?: number;
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
 
@@ -767,7 +768,7 @@ export async function createSale(data: {
   }
 
   const saleNumber = `V-${Date.now()}`;
-  let totalAmount = 0;
+  let subtotal = 0;
 
   const promotions = data.promotions?.length
     ? await prisma.promotion.findMany({
@@ -841,7 +842,7 @@ export async function createSale(data: {
       const product = productMap.get(item.productId)!;
       const unitPrice = product.salePrice;
       const totalPrice = Number(unitPrice) * item.quantity;
-      totalAmount += totalPrice;
+      subtotal += totalPrice;
 
       await tx.saleItem.create({
         data: {
@@ -859,7 +860,7 @@ export async function createSale(data: {
       const promotion = promotionMap.get(promo.promotionId)!;
       const unitPrice = promotion.salePrice;
       const totalPrice = Number(unitPrice) * promo.quantity;
-      totalAmount += totalPrice;
+      subtotal += totalPrice;
 
       const salePromotion = await tx.salePromotion.create({
         data: {
@@ -903,9 +904,17 @@ export async function createSale(data: {
       });
     }
 
+    const discountPercentage = Math.max(0, Math.min(100, Math.round(data.discountPercentage || 0)));
+    const discountAmount = Math.round((subtotal * discountPercentage) / 100);
+    const totalAmount = subtotal - discountAmount;
+
     return tx.sale.update({
       where: { id: createdSale.id },
-      data: { totalAmount },
+      data: {
+        totalAmount,
+        discountPercentage,
+        discountAmount,
+      },
       include: {
         user: { select: { name: true, email: true } },
         customer: { select: { name: true, id: true } },
@@ -931,6 +940,7 @@ export async function updateSale(
     customerId?: string;
     isPaid?: boolean;
     paymentMethod?: string;
+    discountPercentage?: number;
   }
 ) {
   const user = requireOwner(await getCurrentUser());
@@ -1024,7 +1034,7 @@ export async function updateSale(
     }
   }
 
-  let totalAmount = 0;
+  let subtotal = 0;
 
   const updatedSale = await prisma.$transaction(async (tx) => {
     // 1. Revertir stock original
@@ -1059,6 +1069,8 @@ export async function updateSale(
             ? (data.paymentMethod as PaymentMethod)
             : PaymentMethod.CASH,
         totalAmount: 0,
+        discountPercentage: 0,
+        discountAmount: 0,
       },
     });
 
@@ -1067,7 +1079,7 @@ export async function updateSale(
       const product = productMap.get(item.productId)!;
       const unitPrice = product.salePrice;
       const totalPrice = Number(unitPrice) * item.quantity;
-      totalAmount += totalPrice;
+      subtotal += totalPrice;
 
       await tx.saleItem.create({
         data: {
@@ -1085,7 +1097,7 @@ export async function updateSale(
       const promotion = promotionMap.get(promo.promotionId)!;
       const unitPrice = promotion.salePrice;
       const totalPrice = Number(unitPrice) * promo.quantity;
-      totalAmount += totalPrice;
+      subtotal += totalPrice;
 
       const salePromotion = await tx.salePromotion.create({
         data: {
@@ -1128,9 +1140,17 @@ export async function updateSale(
       });
     }
 
+    const discountPercentage = Math.max(0, Math.min(100, Math.round(data.discountPercentage || 0)));
+    const discountAmount = Math.round((subtotal * discountPercentage) / 100);
+    const totalAmount = subtotal - discountAmount;
+
     return tx.sale.update({
       where: { id },
-      data: { totalAmount },
+      data: {
+        totalAmount,
+        discountPercentage,
+        discountAmount,
+      },
       include: {
         user: { select: { name: true, email: true } },
         customer: { select: { name: true, id: true } },

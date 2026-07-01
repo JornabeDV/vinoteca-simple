@@ -14,6 +14,8 @@ import {
   Loader2,
   Package,
   ArrowRight,
+  Martini,
+  Percent,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -79,6 +81,9 @@ export function EditSalePage({
     sale.paymentMethod && Object.keys(paymentMethodLabels).includes(sale.paymentMethod)
       ? sale.paymentMethod
       : "CASH"
+  );
+  const [discountPercentage, setDiscountPercentage] = useState<number>(
+    Math.max(0, Math.min(100, Number(sale.discountPercentage) || 0))
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -170,7 +175,9 @@ export function EditSalePage({
   }, [adjustedProducts, selectedCategory, search]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const total = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const discountAmount = Math.round((subtotal * discountPercentage) / 100);
+  const total = subtotal - discountAmount;
 
   function addToCart(product: any) {
     setCart((prev) => {
@@ -277,6 +284,7 @@ export function EditSalePage({
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
         paymentMethod,
+        discountPercentage,
       });
       toast.success("Venta actualizada exitosamente");
       router.push("/ventas");
@@ -394,13 +402,51 @@ export function EditSalePage({
           </Select>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
-          </span>
-          <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
-            {formatPrice(total)}
-          </span>
+        {cart.length > 0 && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Percent className="h-3 w-3" />
+              Descuento rápido
+            </Label>
+            <div className="flex gap-2">
+              {[0, 5, 10, 20].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => setDiscountPercentage(pct)}
+                  className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                    discountPercentage === pct
+                      ? "bg-[#7b1f3a] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {pct > 0 ? `-${pct}%` : "Sin dto."}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          {discountPercentage > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Descuento ({discountPercentage}%)
+              </span>
+              <span className="text-emerald-600">-{formatPrice(discountAmount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
+            </span>
+            <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
+              {formatPrice(total)}
+            </span>
+          </div>
         </div>
         <Button
           size="xl"
@@ -446,7 +492,7 @@ export function EditSalePage({
 
           {/* Category chips */}
           {categories.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -482,7 +528,7 @@ export function EditSalePage({
 
         {/* Customer selection */}
         {customers.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-border/50 bg-muted/30">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 sm:rounded-lg border border-border/50 bg-muted/30">
             <div className="flex-1 w-full sm:w-auto">
               <Label className="text-xs text-muted-foreground mb-1.5 block">
                 Cliente
@@ -552,6 +598,8 @@ export function EditSalePage({
                           alt={product.name}
                           className="h-full w-full object-cover"
                         />
+                      ) : product.category?.name?.toLowerCase() === "aperitivo" ? (
+                        <Martini className="h-8 w-8 text-muted-foreground/40" />
                       ) : (
                         <Wine className="h-8 w-8 text-muted-foreground/40" />
                       )}

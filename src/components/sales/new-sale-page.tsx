@@ -22,12 +22,14 @@ import {
   Wallet,
   Receipt,
   Tag,
+  Percent,
   ChevronDown,
   User,
   Beer,
   Droplets,
   Flame,
   GlassWater,
+  Martini,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -90,6 +92,7 @@ export function NewSalePage({
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<keyof typeof paymentMethodLabels>("CASH");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [discountPercentage, setDiscountPercentage] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localProducts, setLocalProducts] = useState<any[]>(products);
 
@@ -153,7 +156,9 @@ export function NewSalePage({
   }, [availablePromotions, search]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const total = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const discountAmount = Math.round((subtotal * discountPercentage) / 100);
+  const total = subtotal - discountAmount;
 
   function handleProductCreated(product: any) {
     setLocalProducts((prev) => [product, ...prev]);
@@ -253,10 +258,24 @@ export function NewSalePage({
     setPaymentMethod("CASH");
     setIsAccountSale(false);
     setSelectedCustomerId("");
+    setDiscountPercentage(0);
   }
 
-  function ProductTypeIcon({ type, className }: { type: string; className?: string }) {
+  function ProductTypeIcon({
+    type,
+    category,
+    className,
+  }: {
+    type: string;
+    category?: string;
+    className?: string;
+  }) {
     const props = { className: cn("text-muted-foreground/60", className) };
+
+    if (category?.toLowerCase() === "aperitivo") {
+      return <Martini {...props} />;
+    }
+
     switch (type) {
       case "BEER":
         return <Beer {...props} />;
@@ -327,6 +346,7 @@ export function NewSalePage({
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
         paymentMethod,
+        discountPercentage,
       });
       toast.success("Venta registrada exitosamente");
       clearCart();
@@ -446,13 +466,51 @@ export function NewSalePage({
           </Select>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
-          </span>
-          <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
-            {formatPrice(total)}
-          </span>
+        {cart.length > 0 && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Percent className="h-3 w-3" />
+              Descuento rápido
+            </Label>
+            <div className="flex gap-2">
+              {[0, 5, 10, 20].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => setDiscountPercentage(pct)}
+                  className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                    discountPercentage === pct
+                      ? "bg-[#7b1f3a] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {pct > 0 ? `-${pct}%` : "Sin dto."}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          {discountPercentage > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Descuento ({discountPercentage}%)
+              </span>
+              <span className="text-emerald-600">-{formatPrice(discountAmount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {cartCount} {cartCount === 1 ? "ítem" : "ítems"}
+            </span>
+            <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
+              {formatPrice(total)}
+            </span>
+          </div>
         </div>
         <Button
           size="xl"
@@ -543,7 +601,7 @@ export function NewSalePage({
 
           {/* Category chips */}
           {viewMode === "products" && categories.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`shrink-0 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium transition-colors ${
@@ -581,7 +639,7 @@ export function NewSalePage({
 
         {/* Customer selection */}
         {customers.length > 0 && (
-          <div className="rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
+          <div className="sm:rounded-lg border border-border/50 bg-muted/30 overflow-hidden sm:ml-8 mb-3">
             <button
               type="button"
               onClick={() => setIsCustomerExpanded((v) => !v)}
@@ -621,7 +679,7 @@ export function NewSalePage({
                         if (value && !isAccountSale) handleAccountSaleChange(true);
                       }}
                     >
-                      <SelectTrigger className="w-full sm:w-[280px] bg-background !rounded-none sm:!rounded-md">
+                      <SelectTrigger className="w-full sm:w-[280px] bg-background">
                         <SelectValue placeholder="Seleccionar cliente...">
                           {customers.find((c) => c.id === selectedCustomerId)?.name ||
                             "Seleccionar cliente..."}
@@ -701,7 +759,11 @@ export function NewSalePage({
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <ProductTypeIcon type={product.productType} className="h-5 w-5 sm:h-10 sm:w-10" />
+                          <ProductTypeIcon
+                            type={product.productType}
+                            category={product.category?.name}
+                            className="h-5 w-5 sm:h-10 sm:w-10"
+                          />
                         )}
                       </div>
 

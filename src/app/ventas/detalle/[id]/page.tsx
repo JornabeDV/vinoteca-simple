@@ -140,11 +140,29 @@ export default async function SaleDetail({
             )}
 
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="font-heading text-lg font-semibold">Total</span>
-              <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
-                {formatPrice(Number(sale.totalAmount))}
-              </span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>
+                  {formatPrice(Number(sale.totalAmount) + Number(sale.discountAmount || 0))}
+                </span>
+              </div>
+              {Number(sale.discountPercentage || 0) > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    Descuento ({sale.discountPercentage}%)
+                  </span>
+                  <span className="text-emerald-600">
+                    -{formatPrice(Number(sale.discountAmount || 0))}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="font-heading text-lg font-semibold">Total</span>
+                <span className="font-heading text-2xl font-bold text-[#7b1f3a]">
+                  {formatPrice(Number(sale.totalAmount))}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>

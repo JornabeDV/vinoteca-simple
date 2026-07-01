@@ -1,0 +1,8 @@
+-- AddProductTypeValue
+ALTER TYPE "ProductType" ADD VALUE IF NOT EXISTS 'NON_ALCOHOLIC';
+
+-- AlterTable
+ALTER TABLE "sales" ADD COLUMN IF NOT EXISTS "discount_percentage" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "sales" ADD COLUMN IF NOT EXISTS "discount_amount" DECIMAL(10,2) NOT NULL DEFAULT 0;
