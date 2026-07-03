@@ -96,10 +96,14 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
       productType,
       costPrice: parseFloat(formData.get("costPrice") as string),
       salePrice: parseFloat(formData.get("salePrice") as string),
-      currentStock: parseInt(formData.get("currentStock") as string) || 0,
       minStock: parseInt(formData.get("minStock") as string) || 0,
       image: imagePreview || null,
     };
+
+    // El stock solo se define al crear un producto; en edición se gestiona desde Inventario
+    if (!product) {
+      data.currentStock = parseInt(formData.get("currentStock") as string) || 0;
+    }
 
     if (selectedCategoryId && selectedCategoryId !== "__new__") {
       data.categoryId = selectedCategoryId;

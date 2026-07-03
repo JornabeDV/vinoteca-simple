@@ -57,6 +57,7 @@ enum SupplierDebtStatus {
 model Business {
   id         String         @id @default(uuid())
   name       String
+  logo       String?
   inviteCode String         @unique @map("invite_code")
   status     BusinessStatus @default(ACTIVE)
   createdAt  DateTime       @default(now()) @map("created_at")

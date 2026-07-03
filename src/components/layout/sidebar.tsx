@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -21,6 +22,7 @@ import {
   Truck,
   Receipt,
   ShoppingBag,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,7 @@ const ownerNavigation = [
   { name: "Proveedores", href: "/proveedores", icon: Truck, tourId: "nav-proveedores" as string | undefined },
   { name: "Gastos", href: "/gastos", icon: Receipt, tourId: "nav-gastos" as string | undefined },
   { name: "Panel general", href: "/dashboard", icon: LayoutDashboard, tourId: "nav-dashboard" as string | undefined },
+  { name: "Mi Vinoteca", href: "/mi-vinoteca", icon: Store, tourId: "nav-mi-vinoteca" as string | undefined },
 ];
 
 const employeeNavigation = [
@@ -85,9 +88,11 @@ function getNavItems(userRole?: string) {
 export function DesktopSidebar({
   userRole,
   businessName,
+  businessLogo,
 }: {
   userRole?: string;
   businessName?: string | null;
+  businessLogo?: string | null;
 }) {
   const pathname = usePathname();
   const navItems = getNavItems(userRole);
@@ -96,22 +101,30 @@ export function DesktopSidebar({
     <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-border lg:bg-card">
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex h-16 items-center px-6 border-b border-border/50">
-          <Link href={userRole === "ADMIN" ? "/admin" : "/"} className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]">
-              <Wine className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                Vinoteca{" "}
-                <span className="text-[#7b1f3a]">Simple</span>
-              </span>
-              {businessName && (
-                <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                  {businessName}
-                </span>
-              )}
-            </div>
+        <div className="flex h-16 items-center justify-center px-6 border-b border-border/50">
+          <Link
+            href={userRole === "ADMIN" ? "/admin" : "/"}
+            className="flex items-center gap-3 min-w-0"
+          >
+            {businessLogo ? (
+              <img
+                src={businessLogo}
+                alt={businessName || "Vinoteca"}
+                className="max-h-12 max-w-[200px] object-contain"
+              />
+            ) : (
+              <>
+                <div className="flex flex-col min-w-0">
+                  <Image
+                    src="/logo_letra.png"
+                    alt="Vinoteca Simple"
+                    width={120}
+                    height={28}
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
+              </>
+            )}
           </Link>
         </div>
 
@@ -167,9 +180,11 @@ export function DesktopSidebar({
 export function MobileSidebar({
   userRole,
   businessName,
+  businessLogo,
 }: {
   userRole?: string;
   businessName?: string | null;
+  businessLogo?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -184,25 +199,31 @@ export function MobileSidebar({
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex flex-col h-full">
-          <div className="flex h-16 items-center px-6 border-b border-border/50">
+          <div className="flex h-16 items-center justify-center px-6 border-b border-border/50">
             <Link
               href={userRole === "ADMIN" ? "/admin" : "/"}
-              className="flex items-center gap-3"
+              className="flex items-center gap-3 min-w-0"
               onClick={() => setOpen(false)}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7b1f3a]">
-                <Wine className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-heading text-lg font-semibold tracking-tight">
-                  Vinoteca <span className="text-[#7b1f3a]">Simple</span>
-                </span>
-                {businessName && (
-                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                    {businessName}
-                  </span>
-                )}
-              </div>
+              {businessLogo ? (
+                <img
+                  src={businessLogo}
+                  alt={businessName || "Vinoteca"}
+                  className="max-h-12 max-w-[200px] object-contain"
+                />
+              ) : (
+                <>
+                  <div className="flex flex-col min-w-0">
+                    <Image
+                      src="/logo_letra.png"
+                      alt="Vinoteca Simple"
+                      width={120}
+                      height={28}
+                      className="h-12 w-auto object-contain"
+                    />
+                  </div>
+                </>
+              )}
             </Link>
           </div>
 

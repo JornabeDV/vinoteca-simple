@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Wine, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -50,12 +51,20 @@ export function LandingNavbar() {
                   {/* Drawer header */}
                   <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7b1f3a]">
-                        <Wine className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                        Vinoteca <span className="text-[#7b1f3a]">Simple</span>
-                      </span>
+                      <Image
+                        src="/logo_imagen_sin_fondo.png"
+                        alt=""
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-lg object-contain"
+                      />
+                      <Image
+                        src="/logo_letra_sin_fondo.png"
+                        alt="Vinoteca Simple"
+                        width={120}
+                        height={28}
+                        className="h-6 w-auto object-contain"
+                      />
                     </div>
                   </div>
 
@@ -66,7 +75,7 @@ export function LandingNavbar() {
                         <button
                           key={link.href}
                           onClick={() => scrollTo(link.href)}
-                          className="text-left px-3 py-3 rounded-lg text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                          className="text-leftpx-3 py-3 rounded-lg text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >
                           {link.label}
                         </button>
@@ -76,7 +85,7 @@ export function LandingNavbar() {
                     <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-border">
                       <Button
                         variant="outline"
-                        className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 w-full h-11"
+                        className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 w-full h-11 cursor-pointer"
                         onClick={() => {
                           setIsOpen(false);
                           router.push("/registro");
@@ -85,7 +94,7 @@ export function LandingNavbar() {
                         Solicitar demo
                       </Button>
                       <Button
-                        className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white w-full h-11"
+                        className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white w-full h-11 cursor-pointer"
                         onClick={() => {
                           setIsOpen(false);
                           router.push("/registro");
@@ -101,12 +110,13 @@ export function LandingNavbar() {
 
             {/* Logo — visible on all screens */}
             <a href="#" className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7b1f3a]">
-                <Wine className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-                Vinoteca <span className="text-[#7b1f3a]">Simple</span>
-              </span>
+              <Image
+                src="/logo_letra_sin_fondo.png"
+                alt="Vinoteca Simple"
+                width={120}
+                height={28}
+                className="h-12 w-auto object-contain"
+              />
             </a>
           </div>
 

@@ -37,7 +37,7 @@ export function CtaSection() {
             >
               <Button
                 size="lg"
-                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white px-10 h-14 text-base font-medium shadow-xl shadow-[#7b1f3a]/20"
+                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white px-10 h-14 text-base font-medium shadow-xl shadow-[#7b1f3a]/20 cursor-pointer"
                 onClick={() => router.push("/registro")}
               >
                 <Wine className="w-5 h-5 mr-2" />
@@ -47,7 +47,7 @@ export function CtaSection() {
             <Button
               size="lg"
               variant="outline"
-              className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 px-10 h-14 text-base font-medium"
+              className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 px-10 h-14 text-base font-medium cursor-pointer"
               onClick={() => router.push("/registro")}
             >
               Empezar prueba gratis

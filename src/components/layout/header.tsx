@@ -63,6 +63,7 @@ function getPageTitle(pathname: string) {
     "/ventas/nueva": "Nueva Venta",
     "/usuarios": "Usuarios",
     "/perfil": "Perfil",
+    "/mi-vinoteca": "Mi Vinoteca",
   };
   if (pathname.startsWith("/productos/editar/")) {
     return "Editar Producto";
@@ -76,9 +77,11 @@ function getPageTitle(pathname: string) {
 export function Header({
   user,
   businessName,
+  businessLogo,
 }: {
   user?: User & { role?: string };
   businessName?: string | null;
+  businessLogo?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -86,19 +89,14 @@ export function Header({
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-card/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
       {/* Mobile menu */}
       <div className="lg:hidden">
-        <MobileSidebar userRole={user?.role} businessName={businessName} />
+        <MobileSidebar userRole={user?.role} businessName={businessName} businessLogo={businessLogo} />
       </div>
 
       <div className="flex flex-1 items-center justify-between">
         <div className="flex flex-col">
-          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            {getPageTitle(pathname)}
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+            {businessName || getPageTitle(pathname)}
           </h1>
-          {businessName && (
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              {businessName}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-3">

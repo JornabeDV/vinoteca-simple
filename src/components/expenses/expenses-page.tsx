@@ -283,6 +283,15 @@ export function ExpensesPage({
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          Gastos
+        </h2>
+        <p className="text-muted-foreground">
+          Administrá los gastos de tu vinoteca
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
