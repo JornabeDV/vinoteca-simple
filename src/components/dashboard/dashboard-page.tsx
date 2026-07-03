@@ -60,7 +60,16 @@ export function DashboardPage({
 
   return (
     <div className="space-y-8">
-      {/* KPI Cards */}
+      <div>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          Panel general
+        </h2>
+        <p className="text-muted-foreground">
+          Resumen de ventas, gastos e inventario de tu vinoteca
+        </p>
+      </div>
+
+      {/* KPI Cards -->
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="dashboard-kpis">
         <KpiCard
           title="Ventas Hoy"

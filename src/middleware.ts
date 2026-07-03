@@ -49,6 +49,9 @@ export default withAuth(
     if (path.startsWith("/productos/actualizar-precios") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
+    if (path.startsWith("/mi-vinoteca") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/ventas/nueva", req.url));
+    }
 
     return NextResponse.next();
   },
@@ -75,5 +78,6 @@ export const config = {
     "/proveedores/:path*",
     "/gastos/:path*",
     "/compras/:path*",
+    "/mi-vinoteca/:path*",
   ],
 };

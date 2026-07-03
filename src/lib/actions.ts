@@ -212,7 +212,8 @@ export async function createProduct(data: {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
-  const { categoryName, ...productData } = data;
+  // currentStock nunca se actualiza desde la edición de producto; se gestiona en Inventario
+  const { categoryName, currentStock: _, ...productData } = data;
 
   const product = await prisma.$transaction(async (tx) => {
     let categoryId = productData.categoryId;

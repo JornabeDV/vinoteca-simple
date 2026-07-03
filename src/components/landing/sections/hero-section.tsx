@@ -65,7 +65,7 @@ export function HeroSection() {
             >
               <Button
                 size="lg"
-                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white px-8 h-12 text-base font-medium shadow-lg shadow-[#7b1f3a]/20"
+                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white px-8 h-12 text-base font-medium shadow-lg shadow-[#7b1f3a]/20 cursor-pointer"
                 onClick={() => router.push("/registro")}
               >
                 <Wine className="w-4 h-4 mr-2" />
@@ -74,7 +74,7 @@ export function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 px-8 h-12 text-base font-medium"
+                className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 px-8 h-12 text-base font-medium cursor-pointer"
                 onClick={() => scrollTo("#funcionalidades")}
               >
                 Ver funcionalidades

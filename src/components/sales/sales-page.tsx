@@ -132,6 +132,15 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          Historial de ventas
+        </h2>
+        <p className="text-muted-foreground">
+          Consultá y gestioná las ventas realizadas
+        </p>
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

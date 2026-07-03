@@ -198,6 +198,15 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          Productos
+        </h2>
+        <p className="text-muted-foreground">
+          Administrá el catálogo de productos de tu vinoteca
+        </p>
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1 max-w-sm">

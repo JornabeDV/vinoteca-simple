@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { Wine, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,13 +48,17 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#faf9f7] via-white to-[#f5f0eb] p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#7b1f3a] shadow-lg shadow-[#7b1f3a]/20">
-            <Wine className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-            Vinoteca <span className="text-[#7b1f3a]">Simple</span>
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <Link href="/">
+            <Image
+              src="/logo_sin_fondo.png"
+              alt="Vinoteca Simple"
+              width={144}
+              height={144}
+              className="h-36 w-36 object-contain"
+              priority
+            />
+          </Link>
+          <p className="mt-2 text-sm md:text-base text-[#7b1f3a]">
             La forma más simple de administrar tu vinoteca.
           </p>
         </div>

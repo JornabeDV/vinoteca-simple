@@ -546,6 +546,9 @@ export function NewSalePage({
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
         <div className="shrink-0 px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 space-y-2 sm:space-y-3">
+          <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground hidden sm:block">
+            Nueva Venta
+          </h2>
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
