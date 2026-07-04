@@ -466,7 +466,7 @@ export function EditSalePage({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8">
+    <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 h-auto">
       {/* ─── LEFT: Product Grid ─── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Header */}

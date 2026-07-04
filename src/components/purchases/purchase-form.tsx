@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createPurchase } from "@/lib/purchase-actions";
+import { createPurchase, updatePurchase } from "@/lib/purchase-actions";
 import { formatPrice } from "@/lib/utils";
 import { ProductCombobox } from "@/components/inventory/product-combobox";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -25,6 +25,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 interface PurchaseFormProps {
   suppliers: any[];
   products: any[];
+  purchase?: any;
 }
 
 interface PurchaseItem {
@@ -34,23 +35,36 @@ interface PurchaseItem {
   unitCost: number;
 }
 
-export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
+function toDateInputValue(date: string | Date | undefined) {
+  if (!date) return new Date().toISOString().split("T")[0];
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toISOString().split("T")[0];
+}
+
+export function PurchaseForm({ suppliers, products, purchase }: PurchaseFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [supplierId, setSupplierId] = useState<string>("");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [supplierId, setSupplierId] = useState<string>(purchase?.supplierId || "");
+  const [invoiceNumber, setInvoiceNumber] = useState(purchase?.invoiceNumber || "");
   const [purchaseDate, setPurchaseDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    toDateInputValue(purchase?.purchaseDate)
   );
-  const [notes, setNotes] = useState("");
-  const [isPaid, setIsPaid] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [notes, setNotes] = useState(purchase?.notes || "");
+  const [isPaid, setIsPaid] = useState(purchase?.isPaid || false);
+  const [paymentMethod, setPaymentMethod] = useState(purchase?.payments?.[0]?.paymentMethod || "");
   const [paymentDate, setPaymentDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    toDateInputValue(purchase?.payments?.[0]?.paymentDate || purchase?.purchaseDate)
   );
-  const [items, setItems] = useState<PurchaseItem[]>([
-    { id: crypto.randomUUID(), productId: "", quantity: 1, unitCost: 0 },
-  ]);
+  const [items, setItems] = useState<PurchaseItem[]>(
+    purchase?.items?.length
+      ? purchase.items.map((i: any) => ({
+          id: crypto.randomUUID(),
+          productId: i.productId,
+          quantity: i.quantity,
+          unitCost: Number(i.unitCost),
+        }))
+      : [{ id: crypto.randomUUID(), productId: "", quantity: 1, unitCost: 0 }]
+  );
 
   const activeProducts = products.filter((p) => p.status === "ACTIVE");
 
@@ -96,25 +110,43 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
     }
 
     try {
-      await createPurchase({
-        supplierId,
-        invoiceNumber: invoiceNumber || undefined,
-        purchaseDate: new Date(purchaseDate),
-        notes: notes || undefined,
-        isPaid,
-        paymentMethod: paymentMethod || undefined,
-        paymentDate: isPaid ? new Date(paymentDate) : undefined,
-        items: validItems.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          unitCost: i.unitCost,
-        })),
-      });
-      toast.success("Compra registrada");
+      if (purchase) {
+        await updatePurchase(purchase.id, {
+          supplierId,
+          invoiceNumber: invoiceNumber || undefined,
+          purchaseDate: new Date(purchaseDate),
+          notes: notes || undefined,
+          isPaid,
+          paymentMethod: paymentMethod || undefined,
+          paymentDate: isPaid ? new Date(paymentDate) : undefined,
+          items: validItems.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            unitCost: i.unitCost,
+          })),
+        });
+        toast.success("Compra actualizada");
+      } else {
+        await createPurchase({
+          supplierId,
+          invoiceNumber: invoiceNumber || undefined,
+          purchaseDate: new Date(purchaseDate),
+          notes: notes || undefined,
+          isPaid,
+          paymentMethod: paymentMethod || undefined,
+          paymentDate: isPaid ? new Date(paymentDate) : undefined,
+          items: validItems.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            unitCost: i.unitCost,
+          })),
+        });
+        toast.success("Compra registrada");
+      }
       router.push("/compras");
       router.refresh();
     } catch (error: any) {
-      toast.error(error.message || "Error al registrar la compra");
+      toast.error(error.message || `Error al ${purchase ? "actualizar" : "registrar"} la compra`);
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +160,9 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#7b1f3a]/10">
               <ShoppingBag className="h-5 w-5 text-[#7b1f3a]" />
             </div>
-            <h3 className="font-heading text-lg font-semibold">Nueva compra</h3>
+            <h3 className="font-heading text-lg font-semibold">
+              {purchase ? "Editar compra" : "Nueva compra"}
+            </h3>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -140,7 +174,7 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
                     {suppliers.find((s) => s.id === supplierId)?.name || "Seleccionar proveedor"}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false}>
                   {suppliers.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
@@ -307,22 +341,27 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex max-sm:flex-col max-sm:items-center sm:justify-end gap-4">
         <Button
           type="button"
           variant="outline"
+          size="xl"
           onClick={() => router.push("/compras")}
           disabled={isLoading}
+          className="max-sm:w-full"
         >
           Cancelar
         </Button>
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+          size="xl"
+          className="max-sm:w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
+          ) : purchase ? (
+            "Guardar cambios"
           ) : (
             "Guardar compra"
           )}

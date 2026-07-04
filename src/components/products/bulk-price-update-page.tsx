@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Percent,
   DollarSign,
   Check,
@@ -29,6 +28,7 @@ import { bulkUpdatePrices } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 
 interface Product {
   id: string;
@@ -141,12 +141,8 @@ export function BulkPriceUpdatePage({ products }: { products: Product[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/productos">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+      <div className="flex flex-col gap-2">
+        <BackButton href="/productos" />
         <div>
           <h2 className="font-heading text-2xl font-bold tracking-tight">
             Actualizar Precios
@@ -315,9 +311,9 @@ export function BulkPriceUpdatePage({ products }: { products: Product[] }) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-3">
-        <Link href="/productos">
-          <Button variant="outline" size="xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <Link href="/productos" className="w-full sm:w-auto">
+          <Button variant="outline" size="xl" className="w-full">
             Cancelar
           </Button>
         </Link>
@@ -325,7 +321,7 @@ export function BulkPriceUpdatePage({ products }: { products: Product[] }) {
           onClick={handleSubmit}
           disabled={isSubmitting || selectedIds.size === 0 || numericValue <= 0}
           size="xl"
-          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+          className="w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 sm:w-auto"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
