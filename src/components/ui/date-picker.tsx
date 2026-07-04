@@ -67,7 +67,7 @@ export function DatePicker({
             }
           }}
           locale={es}
-          initialFocus
+          autoFocus
         />
       </PopoverContent>
     </Popover>
