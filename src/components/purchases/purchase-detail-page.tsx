@@ -78,10 +78,10 @@ export function PurchaseDetailPage({ purchase }: { purchase: any }) {
           description="¿Estás seguro? Se revertirá el stock y se eliminarán las deudas/pagos asociados."
           confirmText="Eliminar"
           cancelText="Cancelar"
-          variant="destructive"
+          variant="default"
           onConfirm={handleDelete}
           trigger={
-            <Button variant="outline" className="gap-2 text-destructive hover:text-destructive">
+            <Button variant="outline" className="gap-2">
               <Trash2 className="h-4 w-4" />
               Eliminar
             </Button>

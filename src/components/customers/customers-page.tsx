@@ -36,6 +36,12 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -233,38 +239,50 @@ export function CustomersPage({ customers }: { customers: Customer[] }) {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEdit(customer);
-                              }}
+                          <TooltipProvider delayDuration={200}>
+                            <div
+                              className="flex items-center justify-end gap-1"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <ConfirmDialog
-                              title="Eliminar cliente"
-                              description={`¿Estás seguro de que querés eliminar a "${customer.name}"? Se perderá el historial de cuenta corriente.`}
-                              confirmText="Eliminar"
-                              cancelText="Cancelar"
-                              variant="destructive"
-                              isLoading={isDeleting}
-                              onConfirm={() => handleDelete(customer.id)}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-muted-foreground hover:text-destructive cursor-pointer"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
-                          </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                    onClick={() => openEdit(customer)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar</TooltipContent>
+                              </Tooltip>
+
+                              <ConfirmDialog
+                                title="Eliminar cliente"
+                                description={`¿Estás seguro de que querés eliminar a "${customer.name}"? Se perderá el historial de cuenta corriente.`}
+                                confirmText="Eliminar"
+                                cancelText="Cancelar"
+                                variant="default"
+                                isLoading={isDeleting}
+                                onConfirm={() => handleDelete(customer.id)}
+                                trigger={
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Eliminar</TooltipContent>
+                                  </Tooltip>
+                                }
+                              />
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     );

@@ -14,7 +14,6 @@ import {
   Loader2,
   Download,
   TrendingUp,
-  Martini,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -281,7 +280,6 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[80px]">Imagen</TableHead>
                   <TableHead>
                     <SortableHeader
                       label="Producto"
@@ -336,7 +334,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
               <TableBody>
                 {paginatedProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isOwner ? 8 : 7} className="h-32 text-center">
+                    <TableCell colSpan={isOwner ? 7 : 6} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Wine className="h-8 w-8 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">
@@ -354,21 +352,6 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                         className="cursor-pointer"
                         onClick={() => router.push(`/productos/editar/${product.id}`)}
                       >
-                        <TableCell>
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                            {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="h-10 w-10 rounded-lg object-cover"
-                              />
-                            ) : product.category?.name?.toLowerCase() === "aperitivo" ? (
-                              <Martini className="h-5 w-5 text-muted-foreground" />
-                            ) : (
-                              <Wine className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium">{product.name}</span>
@@ -432,7 +415,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Editar producto</TooltipContent>
+                                  <TooltipContent>Editar</TooltipContent>
                                 </Tooltip>
 
                                 {product.status === "ACTIVE" ? (
@@ -450,12 +433,12 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="text-muted-foreground cursor-pointer hover:text-amber-600"
+                                            className="text-muted-foreground hover:text-foreground cursor-pointer"
                                           >
                                             <Archive className="h-4 w-4" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>Archivar producto</TooltipContent>
+                                        <TooltipContent>Archivar </TooltipContent>
                                       </Tooltip>
                                     }
                                   />
@@ -474,7 +457,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="text-muted-foreground cursor-pointer hover:text-emerald-600"
+                                            className="text-muted-foreground hover:text-foreground cursor-pointer"
                                           >
                                             <ArchiveRestore className="h-4 w-4" />
                                           </Button>
@@ -499,7 +482,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="cursor-pointer"
+                                          className="text-muted-foreground hover:text-foreground cursor-pointer"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>

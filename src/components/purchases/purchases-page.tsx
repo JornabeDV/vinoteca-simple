@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Eye,
+  Pencil,
   Trash2,
   CheckCircle2,
   Clock,
@@ -24,6 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
@@ -160,30 +167,52 @@ export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] 
                         )}
                       </TableCell>
                       <TableCell>
-                        <div
-                          className="flex items-center justify-end gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Link href={`/compras/${purchase.id}`}>
-                            <Button variant="ghost" size="icon" className="cursor-pointer">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <ConfirmDialog
-                            title="Eliminar compra"
-                            description="¿Estás seguro? Se revertirá el stock y se eliminarán las deudas/pagos asociados."
-                            confirmText="Eliminar"
-                            cancelText="Cancelar"
-                            variant="destructive"
-                            isLoading={deletingId === purchase.id}
-                            onConfirm={() => handleDelete(purchase.id)}
-                            trigger={
-                              <Button variant="ghost" size="icon" className="cursor-pointer text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            }
-                          />
-                        </div>
+                        <TooltipProvider delayDuration={200}>
+                          <div
+                            className="flex items-center justify-end gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/compras/${purchase.id}`}>
+                                  <Button variant="ghost" size="icon" className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>Ver detalle</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/compras/editar/${purchase.id}`}>
+                                  <Button variant="ghost" size="icon" className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>Editar compra</TooltipContent>
+                            </Tooltip>
+                            <ConfirmDialog
+                              title="Eliminar compra"
+                              description="¿Estás seguro? Se revertirá el stock y se eliminarán las deudas/pagos asociados."
+                              confirmText="Eliminar"
+                              cancelText="Cancelar"
+                              variant="destructive"
+                              isLoading={deletingId === purchase.id}
+                              onConfirm={() => handleDelete(purchase.id)}
+                              trigger={
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Eliminar</TooltipContent>
+                                </Tooltip>
+                              }
+                            />
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))

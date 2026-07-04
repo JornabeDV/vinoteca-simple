@@ -178,6 +178,150 @@ export async function createPurchase(data: {
   return serializeData(purchase);
 }
 
+export async function updatePurchase(
+  id: string,
+  data: {
+    supplierId: string;
+    invoiceNumber?: string;
+    purchaseDate?: Date;
+    notes?: string;
+    isPaid: boolean;
+    paymentMethod?: string;
+    paymentDate?: Date;
+    items: { productId: string; quantity: number; unitCost: number }[];
+  }
+) {
+  const user = requireOwner(await getCurrentUser());
+
+  if (data.items.length === 0) throw new Error("La compra debe tener al menos un producto");
+
+  const existing = await prisma.purchase.findFirst({
+    where: { id, businessId: user.businessId },
+    include: { items: true, inventoryMovements: true, debts: true, payments: true },
+  });
+  if (!existing) throw new Error("Compra no encontrada");
+
+  const supplier = await prisma.supplier.findFirst({
+    where: { id: data.supplierId, businessId: user.businessId },
+  });
+  if (!supplier) throw new Error("Proveedor no encontrado");
+
+  const productIds = data.items.map((i) => i.productId);
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, businessId: user.businessId },
+  });
+  if (products.length !== productIds.length) {
+    throw new Error("Uno o más productos no fueron encontrados");
+  }
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  const totalAmount = data.items.reduce(
+    (sum, item) => sum + item.quantity * item.unitCost,
+    0
+  );
+
+  const purchase = await prisma.$transaction(async (tx) => {
+    // Revert stock from original items
+    for (const item of existing.items) {
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
+      if (product) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { currentStock: Math.max(0, product.currentStock - item.quantity) },
+        });
+      }
+    }
+
+    // Clean up related records
+    await tx.inventoryMovement.deleteMany({ where: { purchaseId: id, businessId: user.businessId } });
+    await tx.supplierPayment.deleteMany({ where: { purchaseId: id, businessId: user.businessId } });
+    await tx.supplierDebt.deleteMany({ where: { purchaseId: id, businessId: user.businessId } });
+    await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
+
+    // Update purchase
+    const updated = await tx.purchase.update({
+      where: { id },
+      data: {
+        supplierId: data.supplierId,
+        invoiceNumber: data.invoiceNumber,
+        totalAmount,
+        purchaseDate: data.purchaseDate || new Date(),
+        isPaid: data.isPaid,
+        notes: data.notes,
+      },
+    });
+
+    // Create new items and apply stock
+    for (const item of data.items) {
+      const product = productMap.get(item.productId)!;
+      await tx.purchaseItem.create({
+        data: {
+          purchaseId: id,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          totalCost: item.quantity * item.unitCost,
+        },
+      });
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { currentStock: product.currentStock + item.quantity },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          userId: user.id,
+          businessId: user.businessId,
+          purchaseId: id,
+          quantity: item.quantity,
+          type: MovementType.PURCHASE,
+          notes: `Compra ${data.invoiceNumber || id}`,
+        },
+      });
+    }
+
+    if (data.isPaid) {
+      await tx.supplierPayment.create({
+        data: {
+          supplierId: data.supplierId,
+          purchaseId: id,
+          businessId: user.businessId,
+          amount: totalAmount,
+          paymentDate: data.paymentDate || new Date(),
+          paymentMethod: data.paymentMethod,
+          notes: data.notes,
+        },
+      });
+    } else {
+      await tx.supplierDebt.create({
+        data: {
+          supplierId: data.supplierId,
+          businessId: user.businessId,
+          purchaseId: id,
+          invoiceNumber: data.invoiceNumber,
+          concept: `Compra ${data.invoiceNumber || id}`,
+          totalAmount,
+          paidAmount: 0,
+          issueDate: data.purchaseDate || new Date(),
+          status: SupplierDebtStatus.PENDING,
+        },
+      });
+    }
+
+    return updated;
+  });
+
+  revalidatePath("/compras");
+  revalidatePath("/proveedores");
+  revalidatePath(`/proveedores/${data.supplierId}`);
+  revalidatePath(`/proveedores/${existing.supplierId}`);
+  revalidatePath("/inventario");
+  revalidatePath("/productos");
+  return serializeData(purchase);
+}
+
 export async function deletePurchase(id: string) {
   const user = requireOwner(await getCurrentUser());
 

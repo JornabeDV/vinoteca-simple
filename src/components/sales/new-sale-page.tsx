@@ -541,7 +541,7 @@ export function NewSalePage({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8">
+    <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 h-auto">
       {/* ─── LEFT: Product Grid ─── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
@@ -743,7 +743,7 @@ export function NewSalePage({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 h-full content-start">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((c) => c.id === product.id && c.type === "product");
                   const isLowStock = product.currentStock <= product.minStock;
@@ -751,7 +751,7 @@ export function NewSalePage({
                     <button
                       key={product.id}
                       onClick={() => addProductToCart(product)}
-                      className="group relative flex flex-row sm:flex-col items-start sm:items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
+                      className="group relative flex flex-row sm:flex-col items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
                     >
                       {/* Icon / Image */}
                       <div className="flex h-10 w-10 shrink-0 sm:h-28 sm:w-full items-center justify-center rounded-lg sm:rounded-xl bg-muted sm:mb-3 overflow-hidden">
@@ -771,7 +771,7 @@ export function NewSalePage({
                       </div>
 
                       {/* Info */}
-                      <div className="flex-1 min-w-0 sm:flex sm:flex-col sm:flex-1">
+                      <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm sm:text-base font-medium leading-tight line-clamp-2">
                             {product.name}
@@ -826,14 +826,14 @@ export function NewSalePage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 h-full content-start">
               {filteredPromotions.map((promotion) => {
                 const inCart = cart.find((c) => c.id === promotion.id && c.type === "promotion");
                 return (
                   <button
                     key={promotion.id}
                     onClick={() => addPromotionToCart(promotion)}
-                    className="group relative flex flex-row sm:flex-col items-start sm:items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
+                    className="group relative flex flex-row sm:flex-col items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
                   >
                     {/* Icon */}
                     <div className="flex h-10 w-10 shrink-0 sm:h-28 sm:w-full items-center justify-center rounded-lg sm:rounded-xl bg-muted sm:mb-3 overflow-hidden">
@@ -849,7 +849,7 @@ export function NewSalePage({
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0 sm:flex sm:flex-col sm:flex-1">
+                    <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm sm:text-base font-medium leading-tight line-clamp-2">
                           {promotion.name}
