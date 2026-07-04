@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ShoppingBag,
@@ -41,6 +42,7 @@ interface PurchaseWithDetails {
 }
 
 export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -95,7 +97,7 @@ export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] 
           />
         </div>
         <Link href="/compras/nueva">
-          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto">
+          <Button size="lg" className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2 w-full sm:w-auto cursor-pointer">
             <Plus className="h-5 w-5" />
             Nueva compra
           </Button>
@@ -115,7 +117,7 @@ export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] 
                   <TableHead>Productos</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="w-[100px] text-right"></TableHead>
+                  <TableHead className="w-[100px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -128,7 +130,11 @@ export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] 
                   </TableRow>
                 ) : (
                   filtered.map((purchase) => (
-                    <TableRow key={purchase.id} className="group">
+                    <TableRow
+                      key={purchase.id}
+                      className="group cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/compras/${purchase.id}`)}
+                    >
                       <TableCell className="text-sm whitespace-nowrap">
                         {new Date(purchase.purchaseDate).toLocaleDateString("es-AR")}
                       </TableCell>
@@ -154,7 +160,10 @@ export function PurchasesPage({ purchases }: { purchases: PurchaseWithDetails[] 
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-end gap-1">
+                        <div
+                          className="flex items-center justify-end gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Link href={`/compras/${purchase.id}`}>
                             <Button variant="ghost" size="icon" className="cursor-pointer">
                               <Eye className="h-4 w-4" />

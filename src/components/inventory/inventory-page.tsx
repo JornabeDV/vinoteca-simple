@@ -299,22 +299,24 @@ export function InventoryPage({
                 </Button>
               }
             />
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md max-sm:min-h-[100dvh] max-sm:rounded-none max-sm:max-w-full max-sm:flex max-sm:flex-col">
                 <DialogHeader>
                   <DialogTitle className="font-heading">Ajustar Stock</DialogTitle>
                   <DialogDescription>
                     Registra un movimiento de inventario
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleAdjustment} className="space-y-4">
+                <form onSubmit={handleAdjustment} className="space-y-4 max-sm:flex-1 max-sm:flex max-sm:flex-col max-sm:gap-6 max-sm:space-y-0">
                   <div className="space-y-2">
                     <Label>Producto</Label>
-                    <ProductCombobox
-                      products={products.filter((p) => p.status === "ACTIVE")}
-                      value={selectedProduct}
-                      onChange={setSelectedProduct}
-                      placeholder="Seleccionar producto..."
-                    />
+                    <div className="h-10 max-sm:h-12">
+                      <ProductCombobox
+                        products={products.filter((p) => p.status === "ACTIVE")}
+                        value={selectedProduct}
+                        onChange={setSelectedProduct}
+                        placeholder="Seleccionar producto..."
+                      />
+                    </div>
                     {selectedProduct && (
                       <p className="text-xs text-muted-foreground">
                         Stock actual:{" "}
@@ -330,7 +332,7 @@ export function InventoryPage({
                       value={movementType}
                       onValueChange={(v) => setMovementType((v as MovementType) || MovementType.ADJUSTMENT)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="max-sm:h-12">
                         <SelectValue>
                           {{
                             [MovementType.PURCHASE]: "Compra (entrada)",
@@ -365,6 +367,7 @@ export function InventoryPage({
                       onChange={(e) => setQuantity(e.target.value)}
                       placeholder="Cantidad"
                       required
+                      className="max-sm:h-12"
                     />
                   </div>
                   <div className="space-y-2">
@@ -374,12 +377,13 @@ export function InventoryPage({
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Observaciones opcionales..."
                       rows={2}
+                      className="max-sm:min-h-[100px]"
                     />
                   </div>
-                  <DialogFooter>
+                  <DialogFooter className="max-sm:mt-auto">
                     <Button
                       type="submit"
-                      className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white"
+                      className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white max-sm:h-12 max-sm:w-full"
                       disabled={isLoading}
                     >
                       {isLoading ? "Registrando..." : "Registrar Movimiento"}

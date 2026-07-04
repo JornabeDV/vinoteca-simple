@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { PurchaseForm } from "@/components/purchases/purchase-form";
+import { BackButton } from "@/components/ui/back-button";
 import { getSuppliers } from "@/lib/supplier-actions";
 import { getProducts } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/session";
@@ -18,11 +19,14 @@ export default async function NuevaCompra() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h2 className="font-heading text-2xl font-bold tracking-tight">Nueva compra</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Registrá una compra, se actualizará el stock y se generará la deuda o el pago.
-          </p>
+        <div className="flex flex-col gap-2">
+          <BackButton href="/compras" />
+          <div>
+            <h2 className="font-heading text-2xl font-bold tracking-tight">Nueva compra</h2>
+            <p className="text-muted-foreground">
+              Registrá una compra, se actualizará el stock y se generará la deuda o el pago.
+            </p>
+          </div>
         </div>
         <PurchaseForm suppliers={suppliers} products={products} />
       </div>

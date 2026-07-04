@@ -40,34 +40,60 @@ export function ProductCombobox({
   placeholder = "Buscar producto...",
 }: ProductComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState<number | undefined>(undefined);
+
+  React.useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [open]);
 
   const selectedProduct = products.find((p) => p.id === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between h-10 font-normal"
-          />
-        }
-      >
-        {selectedProduct ? (
-          <span className="truncate">
-            {selectedProduct.name}{" "}
-            <span className="text-muted-foreground">
-              ({selectedProduct.currentStock} u.)
-            </span>
-          </span>
-        ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
-        )}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popper-anchor-width] max-w-[95vw] p-0" align="start">
+    <div ref={containerRef} className="relative w-full">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between h-10 max-sm:h-12 font-normal mb-0"
+            />
+          }
+        >
+          {selectedProduct ? (
+            <div className="truncate min-w-0 text-left">
+              {selectedProduct.name}{" "}
+              <span className="text-muted-foreground">
+                ({selectedProduct.currentStock} u.)
+              </span>
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-left truncate min-w-0">
+              {placeholder}
+            </div>
+          )}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </PopoverTrigger>
+        <PopoverContent
+          className="max-w-[95vw] p-0"
+          align="start"
+          style={{ width }}
+        >
         <Command
           filter={(value, search) => {
             const product = products.find((p) => p.id === value);
@@ -119,6 +145,7 @@ export function ProductCombobox({
           </CommandList>
         </Command>
       </PopoverContent>
-    </Popover>
+      </Popover>
+    </div>
   );
 }

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { createPurchase } from "@/lib/purchase-actions";
 import { formatPrice } from "@/lib/utils";
 import { ProductCombobox } from "@/components/inventory/product-combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface PurchaseFormProps {
   suppliers: any[];
@@ -120,9 +121,9 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#7b1f3a]/10">
               <ShoppingBag className="h-5 w-5 text-[#7b1f3a]" />
@@ -157,13 +158,12 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
                 placeholder="Ej: 001-00001234"
               />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="purchaseDate">Fecha de compra</Label>
-              <Input
+              <DatePicker
                 id="purchaseDate"
-                type="date"
-                value={purchaseDate}
-                onChange={(e) => setPurchaseDate(e.target.value)}
+                date={purchaseDate}
+                onChange={setPurchaseDate}
               />
             </div>
           </div>
@@ -172,7 +172,7 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
 
       {/* Items */}
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-heading text-base font-semibold">Productos</h3>
             <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1">
@@ -250,7 +250,7 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
 
       {/* Payment */}
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <h3 className="font-heading text-base font-semibold">Pago</h3>
 
           <div className="flex items-center gap-3">
@@ -275,13 +275,12 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
                   placeholder="Ej: Transferencia"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="paymentDate">Fecha de pago</Label>
-                <Input
+                <DatePicker
                   id="paymentDate"
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
+                  date={paymentDate}
+                  onChange={setPaymentDate}
                 />
               </div>
             </div>
@@ -294,7 +293,7 @@ export function PurchaseForm({ suppliers, products }: PurchaseFormProps) {
       </Card>
 
       <Card className="border-border/50">
-        <CardContent className="p-6">
+        <CardContent>
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>
             <Textarea

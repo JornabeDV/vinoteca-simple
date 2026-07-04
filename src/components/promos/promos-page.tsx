@@ -150,7 +150,6 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                   <TableHead>
                     <SortableHeader label="Promo" sortKey="name" sort={sort} onSort={handleSort} />
                   </TableHead>
-                  <TableHead>Productos incluidos</TableHead>
                   <TableHead>
                     <SortableHeader label="Precio" sortKey="salePrice" sort={sort} onSort={handleSort} />
                   </TableHead>
@@ -163,7 +162,7 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
               <TableBody>
                 {paginatedPromos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isOwner ? 5 : 4} className="h-32 text-center">
+                    <TableCell colSpan={isOwner ? 4 : 3} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Tag className="h-8 w-8 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">No se encontraron promociones</p>
@@ -174,7 +173,11 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                   paginatedPromos.map((promo) => {
                     const isLoading = loadingId === promo.id;
                     return (
-                      <TableRow key={promo.id}>
+                      <TableRow
+                        key={promo.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/promos/editar/${promo.id}`)}
+                      >
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium">{promo.name}</span>
@@ -183,15 +186,6 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                                 {promo.description}
                               </span>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col text-sm">
-                            {promo.items?.map((item: any) => (
-                              <span key={item.id} className="text-muted-foreground">
-                                {item.quantity} × {item.product?.name}
-                              </span>
-                            ))}
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
@@ -212,7 +206,10 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                         {isOwner && (
                           <TableCell>
                             <TooltipProvider delayDuration={200}>
-                              <div className="flex items-center justify-end gap-1">
+                              <div
+                                className="flex items-center justify-end gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -224,7 +221,7 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Editar promo</TooltipContent>
+                                  <TooltipContent>Editar</TooltipContent>
                                 </Tooltip>
 
                                 {promo.status === "ACTIVE" ? (
@@ -247,7 +244,7 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                                             <Archive className="h-4 w-4" />
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>Archivar promo</TooltipContent>
+                                        <TooltipContent>Archivar</TooltipContent>
                                       </Tooltip>
                                     }
                                   />
@@ -282,7 +279,7 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                                   description={`¿Eliminar "${promo.name}" permanentemente?`}
                                   confirmText="Eliminar"
                                   cancelText="Cancelar"
-                                  variant="destructive"
+                                  variant="default"
                                   isLoading={isLoading}
                                   onConfirm={() => handleDelete(promo.id)}
                                   trigger={
@@ -291,12 +288,12 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="text-muted-foreground hover:text-destructive cursor-pointer"
+                                          className="cursor-pointer"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Eliminar permanentemente</TooltipContent>
+                                      <TooltipContent>Eliminar</TooltipContent>
                                     </Tooltip>
                                   }
                                 />

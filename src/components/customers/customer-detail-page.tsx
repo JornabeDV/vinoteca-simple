@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  ArrowLeft,
   User,
   Phone,
   Mail,
@@ -41,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import { createPayment, updatePayment, deletePayment } from "@/lib/actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -155,21 +154,15 @@ export function CustomerDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <div className="flex items-start gap-4 flex-1">
-          <Link href="/clientes">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-heading text-2xl font-bold tracking-tight break-words">
-              {customer.name}
-            </h2>
-            <p className="text-muted-foreground">
-              Detalle de cuenta corriente
-            </p>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <BackButton href="/clientes" />
+          <h2 className="font-heading text-2xl font-bold tracking-tight break-words">
+            {customer.name}
+          </h2>
+          <p className="text-muted-foreground">
+            Detalle de cuenta corriente
+          </p>
         </div>
         <Button
           onClick={openCreatePayment}

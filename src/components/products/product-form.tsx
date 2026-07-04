@@ -132,7 +132,7 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-6">
         <Card className="border-border/50">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="space-y-4">
             <h3 className="font-heading text-lg font-semibold">
               Información Básica
             </h3>
@@ -246,7 +246,7 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
         </Card>
 
         <Card className="border-border/50">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="space-y-4">
             <h3 className="font-heading text-lg font-semibold">Precios</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -274,7 +274,7 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
         </Card>
 
         <Card className="border-border/50">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="space-y-4">
             <h3 className="font-heading text-lg font-semibold">Inventario</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -308,7 +308,7 @@ export function ProductForm({ product, categories = [] }: ProductFormProps) {
         </Card>
 
         <Card className="border-border/50 hidden">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="space-y-4">
             <h3 className="font-heading text-lg font-semibold">Imagen</h3>
             <div className="flex flex-col items-center gap-3">
               <div className="flex h-32 w-full items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted">
