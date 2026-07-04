@@ -102,7 +102,7 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <h3 className="font-heading text-lg font-semibold flex items-center gap-2">
             <Tag className="h-5 w-5 text-[#7b1f3a]" />
             Información de la Promo
@@ -146,10 +146,10 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
       </Card>
 
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold">Productos incluidos</h3>
-            <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1">
+            <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Agregar producto
             </Button>
@@ -163,8 +163,8 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
 
           <div className="space-y-3">
             {items.map((item, index) => (
-              <div key={index} className="flex gap-3 items-start">
-                <div className="flex-1">
+              <div key={index} className="flex gap-3 items-center">
+                <div className="flex-1 min-w-0">
                   <ProductCombobox
                     products={activeProducts}
                     value={item.productId}
@@ -172,22 +172,22 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
                     placeholder="Seleccionar producto..."
                   />
                 </div>
-                <div className="w-28">
+                <div className="w-12 sm:w-16 shrink-0">
                   <Input
                     type="number"
                     min={1}
                     value={item.quantity}
                     onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
                     placeholder="Cantidad"
+                    className="h-10 text-center"
                   />
                 </div>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   onClick={() => removeItem(index)}
-                  disabled={items.length === 1}
-                  className="text-muted-foreground hover:text-destructive"
+                  className="shrink-0 h-10 w-10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -197,10 +197,12 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
         </CardContent>
       </Card>
 
-      <div className="flex gap-3 justify-end">
+      <div className="flex max-sm:flex-col max-sm:items-center sm:justify-end gap-4">
         <Button
           type="button"
           variant="outline"
+          size="xl"
+          className="max-sm:w-full"
           onClick={() => router.push("/promos")}
           disabled={isLoading}
         >
@@ -209,10 +211,11 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
+          size="xl"
+          className="max-sm:w-full bg-[#7b1f3a] hover:bg-[#5a1530] text-white gap-2"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {promotion ? "Guardar cambios" : "Crear promoción"}
+          {promotion ? "Guardar Cambios" : "Crear Promoción"}
         </Button>
       </div>
     </form>

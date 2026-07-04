@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -85,6 +84,57 @@ function getNavItems(userRole?: string) {
   return employeeNavigation;
 }
 
+function getInitials(name?: string | null) {
+  if (!name) return "VS";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function SidebarBrand({
+  businessName,
+  businessLogo,
+  userRole,
+  onClick,
+}: {
+  businessName?: string | null;
+  businessLogo?: string | null;
+  userRole?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="flex h-32 items-center justify-center px-6">
+      <Link
+        href={userRole === "ADMIN" ? "/admin" : "/"}
+        onClick={onClick}
+        className="flex flex-col items-center gap-2 min-w-0 w-full"
+      >
+        {businessLogo ? (
+          <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-[#7b1f3a]/10 bg-muted shadow-sm">
+            <img
+              src={businessLogo}
+              alt={businessName || "Vinoteca"}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#7b1f3a] text-[#faf9f7] font-heading font-bold text-xl shadow-sm">
+              {getInitials(businessName)}
+            </div>
+            <span className="font-heading text-base font-semibold text-foreground truncate max-w-full">
+              {businessName || "Vinoteca Simple"}
+            </span>
+          </>
+        )}
+      </Link>
+    </div>
+  );
+}
+
 export function DesktopSidebar({
   userRole,
   businessName,
@@ -100,33 +150,11 @@ export function DesktopSidebar({
   return (
     <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-border lg:bg-card">
       <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="flex h-16 items-center justify-center px-6 border-b border-border/50">
-          <Link
-            href={userRole === "ADMIN" ? "/admin" : "/"}
-            className="flex items-center gap-3 min-w-0"
-          >
-            {businessLogo ? (
-              <img
-                src={businessLogo}
-                alt={businessName || "Vinoteca"}
-                className="max-h-12 max-w-[200px] object-contain"
-              />
-            ) : (
-              <>
-                <div className="flex flex-col min-w-0">
-                  <Image
-                    src="/logo_letra.png"
-                    alt="Vinoteca Simple"
-                    width={120}
-                    height={28}
-                    className="h-12 w-auto object-contain"
-                  />
-                </div>
-              </>
-            )}
-          </Link>
-        </div>
+        <SidebarBrand
+          businessName={businessName}
+          businessLogo={businessLogo}
+          userRole={userRole}
+        />
 
         {/* Navigation */}
         <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
@@ -199,33 +227,12 @@ export function MobileSidebar({
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex flex-col h-full">
-          <div className="flex h-16 items-center justify-center px-6 border-b border-border/50">
-            <Link
-              href={userRole === "ADMIN" ? "/admin" : "/"}
-              className="flex items-center gap-3 min-w-0"
-              onClick={() => setOpen(false)}
-            >
-              {businessLogo ? (
-                <img
-                  src={businessLogo}
-                  alt={businessName || "Vinoteca"}
-                  className="max-h-12 max-w-[200px] object-contain"
-                />
-              ) : (
-                <>
-                  <div className="flex flex-col min-w-0">
-                    <Image
-                      src="/logo_letra.png"
-                      alt="Vinoteca Simple"
-                      width={120}
-                      height={28}
-                      className="h-12 w-auto object-contain"
-                    />
-                  </div>
-                </>
-              )}
-            </Link>
-          </div>
+          <SidebarBrand
+            businessName={businessName}
+            businessLogo={businessLogo}
+            userRole={userRole}
+            onClick={() => setOpen(false)}
+          />
 
           <nav className="flex-1 overflow-auto py-4 px-3 space-y-1">
             {navItems.map((item) => {

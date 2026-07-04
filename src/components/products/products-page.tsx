@@ -349,7 +349,11 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                   paginatedProducts.map((product) => {
                     const isLoading = loadingId === product.id;
                     return (
-                      <TableRow key={product.id}>
+                      <TableRow
+                        key={product.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/productos/editar/${product.id}`)}
+                      >
                         <TableCell>
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                             {product.image ? (
@@ -413,7 +417,10 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                         {isOwner && (
                           <TableCell>
                             <TooltipProvider delayDuration={200}>
-                              <div className="flex items-center justify-end gap-1">
+                              <div
+                                className="flex items-center justify-end gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -483,7 +490,7 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                   description={`¿Estás seguro de que querés eliminar "${product.name}" permanentemente?`}
                                   confirmText="Eliminar"
                                   cancelText="Cancelar"
-                                  variant="destructive"
+                                  variant="default"
                                   isLoading={isLoading}
                                   onConfirm={() => handleDelete(product.id)}
                                   trigger={
@@ -492,12 +499,12 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="text-muted-foreground cursor-pointer hover:text-destructive"
+                                          className="cursor-pointer"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Eliminar permanentemente</TooltipContent>
+                                      <TooltipContent>Eliminar</TooltipContent>
                                     </Tooltip>
                                   }
                                 />

@@ -70,7 +70,7 @@ export function SupplierPaymentForm({ supplier }: SupplierPaymentFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
               <Banknote className="h-5 w-5 text-emerald-600" />

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Store, Trash2, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Save, Store, Trash2, Upload, ImageIcon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,12 +123,12 @@ export function MiVinotecaForm({ business }: MiVinotecaFormProps) {
             <Label>Logo</Label>
 
             {displayUrl ? (
-              <div className="flex items-center gap-4">
-                <div className="relative h-24 w-24 rounded-lg border border-border/50 overflow-hidden bg-muted">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="relative h-32 w-32 rounded-xl border border-border/50 overflow-hidden bg-muted shadow-sm">
                   <img
                     src={displayUrl}
                     alt="Logo de la vinoteca"
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -155,8 +155,8 @@ export function MiVinotecaForm({ business }: MiVinotecaFormProps) {
               </div>
             ) : (
               <div className="flex flex-col items-start gap-3">
-                <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-border bg-muted">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                <div className="flex h-32 w-32 items-center justify-center rounded-xl border border-dashed border-border bg-muted">
+                  <ImageIcon className="h-10 w-10 text-muted-foreground" />
                 </div>
                 <Button
                   type="button"
@@ -181,6 +181,47 @@ export function MiVinotecaForm({ business }: MiVinotecaFormProps) {
               onChange={handleFileChange}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="font-heading text-lg flex items-center gap-2">
+            <Eye className="h-5 w-5 text-[#7b1f3a]" />
+            Vista previa en el menú
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card p-6">
+            {displayUrl ? (
+              <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-[#7b1f3a]/10 bg-muted shadow-sm">
+                <img
+                  src={displayUrl}
+                  alt={name || "Vinoteca"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#7b1f3a] text-[#faf9f7] font-heading font-bold text-xl shadow-sm">
+                  {name
+                    ? name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : "VS"}
+                </div>
+                <span className="font-heading text-base font-semibold text-foreground truncate max-w-full">
+                  {name || "Vinoteca Simple"}
+                </span>
+              </>
+            )}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Así se verá tu vinoteca en el menú lateral. Un logo claro y legible ayuda a que tu equipo se sienta en casa.
+          </p>
         </CardContent>
       </Card>
 

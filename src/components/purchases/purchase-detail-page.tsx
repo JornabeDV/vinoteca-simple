@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  ArrowLeft,
   ShoppingBag,
   Truck,
   FileText,
@@ -23,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 import { deletePurchase } from "@/lib/purchase-actions";
@@ -46,14 +46,8 @@ export function PurchaseDetailPage({ purchase }: { purchase: any }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <Link
-            href="/compras"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#7b1f3a] transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a compras
-          </Link>
+        <div className="space-y-2">
+          <BackButton href="/compras" />
           <h2 className="font-heading text-2xl font-bold tracking-tight">
             Compra {purchase.invoiceNumber || purchase.id.slice(0, 8)}
           </h2>

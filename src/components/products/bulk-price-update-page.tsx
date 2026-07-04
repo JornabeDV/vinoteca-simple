@@ -158,7 +158,7 @@ export function BulkPriceUpdatePage({ products }: { products: Product[] }) {
       </div>
 
       <Card className="border-border/50">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="space-y-4">
           <h3 className="font-heading text-lg font-semibold">Opciones</h3>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
