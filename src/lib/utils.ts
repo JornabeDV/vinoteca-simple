@@ -45,4 +45,17 @@ export function getProductTypeLabel(type?: string | null): string {
   return productTypeLabels[type || ""] || type || "—";
 }
 
+/**
+ * Escape a CSV field to mitigate CSV injection attacks. Fields starting with
+ * formula-triggering characters ('=', '+', '-', '@', '\t', '\r') are prefixed
+ * with a single quote so spreadsheet applications treat them as text.
+ */
+export function escapeCsvField(value: unknown): string {
+  const str = String(value ?? "");
+  if (/^[+=\-@\t\r]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
+
 type Decimal = { toNumber(): number };

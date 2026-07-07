@@ -4,12 +4,22 @@ import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
-import { MovementType, SupplierDebtStatus } from "@prisma/client";
+import { MovementType, SupplierDebtStatus, BusinessStatus } from "@prisma/client";
 
 function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   if (!user) throw new Error("No autenticado");
   if (!user.businessId) throw new Error("No perteneces a ningún negocio");
   return user as typeof user & { businessId: string };
+}
+
+async function checkBusinessNotSuspended(businessId: string) {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { status: true },
+  });
+  if (business?.status === BusinessStatus.SUSPENDED) {
+    throw new Error("Tu negocio se encuentra suspendido. Contactá al soporte.");
+  }
 }
 
 function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
@@ -19,7 +29,8 @@ function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
 }
 
 export async function getPurchases() {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const purchases = await prisma.purchase.findMany({
     where: { businessId: user.businessId },
@@ -30,6 +41,7 @@ export async function getPurchases() {
       payments: true,
     },
     orderBy: { purchaseDate: "desc" },
+    take: 500,
   });
 
   const serialized = serializeData(purchases);
@@ -41,7 +53,8 @@ export async function getPurchases() {
 }
 
 export async function getPurchaseById(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const purchase = await prisma.purchase.findFirst({
     where: { id, businessId: user.businessId },
@@ -74,8 +87,15 @@ export async function createPurchase(data: {
   items: { productId: string; quantity: number; unitCost: number }[];
 }) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   if (data.items.length === 0) throw new Error("La compra debe tener al menos un producto");
+
+  for (const item of data.items) {
+    if (!item.productId || item.quantity <= 0 || item.unitCost < 0) {
+      throw new Error("Datos de ítem inválidos");
+    }
+  }
 
   const supplier = await prisma.supplier.findFirst({
     where: { id: data.supplierId, businessId: user.businessId },
@@ -192,8 +212,15 @@ export async function updatePurchase(
   }
 ) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   if (data.items.length === 0) throw new Error("La compra debe tener al menos un producto");
+
+  for (const item of data.items) {
+    if (!item.productId || item.quantity <= 0 || item.unitCost < 0) {
+      throw new Error("Datos de ítem inválidos");
+    }
+  }
 
   const existing = await prisma.purchase.findFirst({
     where: { id, businessId: user.businessId },
@@ -324,6 +351,7 @@ export async function updatePurchase(
 
 export async function deletePurchase(id: string) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const purchase = await prisma.purchase.findFirst({
     where: { id, businessId: user.businessId },

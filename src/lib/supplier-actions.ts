@@ -4,12 +4,22 @@ import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
-import { SupplierDebtStatus } from "@prisma/client";
+import { SupplierDebtStatus, BusinessStatus } from "@prisma/client";
 
 function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   if (!user) throw new Error("No autenticado");
   if (!user.businessId) throw new Error("No perteneces a ningún negocio");
   return user as typeof user & { businessId: string };
+}
+
+async function checkBusinessNotSuspended(businessId: string) {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { status: true },
+  });
+  if (business?.status === BusinessStatus.SUSPENDED) {
+    throw new Error("Tu negocio se encuentra suspendido. Contactá al soporte.");
+  }
 }
 
 function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
@@ -18,10 +28,17 @@ function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return u;
 }
 
+function maskCbuAlias(cbuAlias?: string | null): string | null {
+  if (!cbuAlias) return null;
+  if (cbuAlias.length <= 6) return "•••";
+  return `${cbuAlias.slice(0, 3)}${"•".repeat(cbuAlias.length - 6)}${cbuAlias.slice(-3)}`;
+}
+
 // ─── Suppliers ───
 
 export async function getSuppliers() {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const suppliers = await prisma.supplier.findMany({
     where: { businessId: user.businessId },
@@ -30,6 +47,7 @@ export async function getSuppliers() {
       payments: true,
     },
     orderBy: { name: "asc" },
+    take: 500,
   });
 
   return serializeData(
@@ -50,6 +68,7 @@ export async function getSuppliers() {
 
       return {
         ...s,
+        cbuAlias: maskCbuAlias(s.cbuAlias),
         totalDebt,
         totalPaid,
         balance,
@@ -61,7 +80,8 @@ export async function getSuppliers() {
 }
 
 export async function getSupplierById(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const supplier = await prisma.supplier.findFirst({
     where: { id, businessId: user.businessId },
@@ -112,15 +132,16 @@ export async function createSupplier(data: {
   notes?: string;
 }) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const supplier = await prisma.supplier.create({
     data: {
-      name: data.name,
-      contactName: data.contactName,
-      phone: data.phone,
-      email: data.email,
-      cbuAlias: data.cbuAlias,
-      notes: data.notes,
+      name: data.name.trim(),
+      contactName: data.contactName?.trim(),
+      phone: data.phone?.trim(),
+      email: data.email?.trim().toLowerCase(),
+      cbuAlias: data.cbuAlias?.trim(),
+      notes: data.notes?.trim(),
       businessId: user.businessId,
     },
   });
@@ -141,16 +162,17 @@ export async function updateSupplier(
   }
 ) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const supplier = await prisma.supplier.updateMany({
     where: { id, businessId: user.businessId },
     data: {
-      name: data.name,
-      contactName: data.contactName,
-      phone: data.phone,
-      email: data.email,
-      cbuAlias: data.cbuAlias,
-      notes: data.notes,
+      name: data.name.trim(),
+      contactName: data.contactName?.trim(),
+      phone: data.phone?.trim(),
+      email: data.email?.trim().toLowerCase(),
+      cbuAlias: data.cbuAlias?.trim(),
+      notes: data.notes?.trim(),
     },
   });
 
@@ -165,6 +187,7 @@ export async function updateSupplier(
 
 export async function deleteSupplier(id: string) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   await prisma.supplier.deleteMany({
     where: { id, businessId: user.businessId },
@@ -190,6 +213,9 @@ export async function createSupplierDebt(data: {
   dueDate?: Date | null;
 }) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
+
+  if (data.totalAmount < 0) throw new Error("El monto no puede ser negativo");
 
   const supplier = await prisma.supplier.findFirst({
     where: { id: data.supplierId, businessId: user.businessId },
@@ -217,6 +243,7 @@ export async function createSupplierDebt(data: {
 
 export async function deleteSupplierDebt(id: string) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const debt = await prisma.supplierDebt.findFirst({
     where: { id, businessId: user.businessId },
@@ -242,6 +269,9 @@ export async function createSupplierPayment(data: {
   notes?: string;
 }) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
+
+  if (data.amount <= 0) throw new Error("El monto debe ser mayor a cero");
 
   const supplier = await prisma.supplier.findFirst({
     where: { id: data.supplierId, businessId: user.businessId },
@@ -304,6 +334,7 @@ export async function createSupplierPayment(data: {
 
 export async function deleteSupplierPayment(id: string) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const payment = await prisma.supplierPayment.findFirst({
     where: { id, businessId: user.businessId },
@@ -333,7 +364,8 @@ export async function deleteSupplierPayment(id: string) {
 // ─── Dashboard ───
 
 export async function getSupplierDashboard() {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const [suppliers, debts, payments] = await Promise.all([
     prisma.supplier.findMany({
@@ -381,7 +413,8 @@ export async function getSupplierDashboard() {
 }
 
 export async function getUpcomingDueDebts(limit = 10) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const debts = await prisma.supplierDebt.findMany({
     where: {

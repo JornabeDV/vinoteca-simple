@@ -238,14 +238,29 @@ RootLayout
 ```
 src/
 ├── app/                    # Rutas Next.js App Router
-│   ├── page.tsx            # Dashboard
+│   ├── page.tsx            # Landing / redirect
 │   ├── login/page.tsx      # Auth
-│   ├── productos/
-│   ├── promos/
-│   ├── inventario/
-│   ├── ventas/
-│   ├── usuarios/
-│   ├── perfil/
+│   ├── registro/page.tsx   # Registro de dueño
+│   ├── unirse/page.tsx     # Registro de empleado
+│   ├── (owner)/            # Grupo de rutas OWNER-only
+│   │   ├── categorias/
+│   │   ├── clientes/
+│   │   ├── compras/
+│   │   ├── dashboard/
+│   │   ├── gastos/
+│   │   ├── mi-vinoteca/
+│   │   ├── productos/
+│   │   │   ├── nuevo/
+│   │   │   ├── editar/[id]/
+│   │   │   └── actualizar-precios/
+│   │   ├── promos/
+│   │   ├── proveedores/
+│   │   ├── usuarios/
+│   │   └── ventas/editar/[id]/
+│   ├── productos/          # Listado de productos (OWNER + EMPLOYEE)
+│   ├── inventario/         # EMPLOYEE+
+│   ├── ventas/             # EMPLOYEE+
+│   ├── perfil/             # Todos los autenticados
 │   └── api/auth/[...nextauth]/
 ├── components/
 │   ├── ui/                 # shadcn/ui components

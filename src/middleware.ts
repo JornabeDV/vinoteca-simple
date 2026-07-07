@@ -1,8 +1,38 @@
 import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { checkRateLimit } from "./lib/rate-limit";
+
+function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() || "unknown";
+  }
+  return req.headers.get("x-real-ip") || "unknown";
+}
+
+function authRateLimit(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+  if (
+    req.method === "POST" &&
+    (path === "/api/auth/callback/credentials" || path.startsWith("/api/auth/signin"))
+  ) {
+    const ip = getClientIp(req);
+    const result = checkRateLimit(`login:${ip}`);
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: "Demasiados intentos. Volvé a intentar más tarde." },
+        { status: 429 }
+      );
+    }
+  }
+  return null;
+}
 
 export default withAuth(
   function middleware(req) {
+    const rateLimitResponse = authRateLimit(req);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
@@ -31,6 +61,12 @@ export default withAuth(
     if (path.startsWith("/productos/editar") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
+    if (path.startsWith("/productos/actualizar-precios") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
+    if (path.startsWith("/promos") && token?.role !== "OWNER") {
+      return NextResponse.redirect(new URL("/productos", req.url));
+    }
     if (path.startsWith("/categorias") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/productos", req.url));
     }
@@ -46,9 +82,6 @@ export default withAuth(
     if (path.startsWith("/compras") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas", req.url));
     }
-    if (path.startsWith("/productos/actualizar-precios") && token?.role !== "OWNER") {
-      return NextResponse.redirect(new URL("/productos", req.url));
-    }
     if (path.startsWith("/mi-vinoteca") && token?.role !== "OWNER") {
       return NextResponse.redirect(new URL("/ventas/nueva", req.url));
     }
@@ -57,7 +90,17 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized({ token }) {
+      authorized({ token, req }) {
+        // Public auth endpoints must be reachable for rate limiting to apply.
+        const path = req.nextUrl.pathname;
+        if (
+          path.startsWith("/api/auth/") ||
+          path === "/login" ||
+          path === "/registro" ||
+          path === "/unirse"
+        ) {
+          return true;
+        }
         return !!token;
       },
     },
@@ -69,6 +112,7 @@ export const config = {
     "/admin/:path*",
     "/dashboard/:path*",
     "/productos/:path*",
+    "/promos/:path*",
     "/inventario/:path*",
     "/ventas/:path*",
     "/usuarios/:path*",
@@ -79,5 +123,6 @@ export const config = {
     "/gastos/:path*",
     "/compras/:path*",
     "/mi-vinoteca/:path*",
+    "/api/auth/:path*",
   ],
 };

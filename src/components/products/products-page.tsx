@@ -46,7 +46,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { archiveProduct, activateProduct, deleteProduct } from "@/lib/actions";
 import { ProductImportButton } from "./product-import-button";
-import { formatPrice, getProductTypeLabel } from "@/lib/utils";
+import { formatPrice, getProductTypeLabel, escapeCsvField } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function ProductsPage({ products, userRole }: { products: any[]; userRole?: string }) {
@@ -85,17 +85,17 @@ export function ProductsPage({ products, userRole }: { products: any[]; userRole
       "descripcion",
     ];
     const rows = products.map((p) => [
-      p.name || "",
-      p.brand || "",
-      p.category?.name || "",
-      p.style || "",
-      p.year || "",
-      getProductTypeLabel(p.productType),
-      p.costPrice || "",
-      p.salePrice || "",
-      p.currentStock || "",
-      p.minStock || "",
-      p.description || "",
+      escapeCsvField(p.name),
+      escapeCsvField(p.brand),
+      escapeCsvField(p.category?.name),
+      escapeCsvField(p.style),
+      escapeCsvField(p.year),
+      escapeCsvField(getProductTypeLabel(p.productType)),
+      escapeCsvField(p.costPrice),
+      escapeCsvField(p.salePrice),
+      escapeCsvField(p.currentStock),
+      escapeCsvField(p.minStock),
+      escapeCsvField(p.description),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     // Add BOM so Excel detects UTF-8 correctly

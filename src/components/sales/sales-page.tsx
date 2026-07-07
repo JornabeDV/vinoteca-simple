@@ -27,7 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
-import { formatPrice, getPaymentMethodLabel } from "@/lib/utils";
+import { formatPrice, getPaymentMethodLabel, escapeCsvField } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
@@ -60,14 +60,14 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
   const handleExport = () => {
     const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "descuento", "total"];
     const rows = sales.map((s) => [
-      s.saleNumber || "",
-      s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
-      s.user?.name || s.user?.email || "",
-      s.customer?.name || "",
-      getPaymentMethodLabel(s.paymentMethod),
-      (s.items?.length || 0).toString(),
-      `${s.discountPercentage || 0}%`,
-      s.totalAmount?.toString() || "",
+      escapeCsvField(s.saleNumber),
+      escapeCsvField(s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : ""),
+      escapeCsvField(s.user?.name || s.user?.email),
+      escapeCsvField(s.customer?.name),
+      escapeCsvField(getPaymentMethodLabel(s.paymentMethod)),
+      escapeCsvField(s.items?.length || 0),
+      escapeCsvField(`${s.discountPercentage || 0}%`),
+      escapeCsvField(s.totalAmount),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const csvWithBom = "\ufeff" + csv;

@@ -30,8 +30,24 @@ export default function RegisterOwnerPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+    if (password.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    if (password.length > 100) {
+      toast.error("La contraseña no puede superar los 100 caracteres");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      toast.error("La contraseña debe tener al menos una mayúscula");
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      toast.error("La contraseña debe tener al menos una minúscula");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      toast.error("La contraseña debe tener al menos un número");
       return;
     }
 
@@ -108,6 +124,7 @@ export default function RegisterOwnerPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="tu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -121,6 +138,7 @@ export default function RegisterOwnerPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -145,6 +163,7 @@ export default function RegisterOwnerPage() {
                 <Input
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
