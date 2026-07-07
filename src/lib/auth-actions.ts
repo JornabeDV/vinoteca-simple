@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "./session";
 import { z } from "zod";
 import { cloudinary } from "./cloudinary";
+import { randomInt } from "crypto";
+import { checkRateLimit } from "./rate-limit";
 
 function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   if (!user) throw new Error("No autenticado");
@@ -20,14 +22,48 @@ function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return u;
 }
 
+const passwordSchema = z
+  .string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .max(100, "La contraseña no puede superar los 100 caracteres")
+  .regex(/[A-Z]/, "La contraseña debe tener al menos una mayúscula")
+  .regex(/[a-z]/, "La contraseña debe tener al menos una minúscula")
+  .regex(/[0-9]/, "La contraseña debe tener al menos un número");
+
+const emailSchema = z
+  .string()
+  .min(1, "El email es obligatorio")
+  .max(255, "El email no puede superar los 255 caracteres")
+  .email("El email no es válido")
+  .transform((val) => val.toLowerCase().trim());
+
+const nameSchema = z
+  .string()
+  .min(1, "El nombre es obligatorio")
+  .max(100, "El nombre no puede superar los 100 caracteres")
+  .transform((val) => val.trim());
+
+const businessNameSchema = z
+  .string()
+  .min(1, "El nombre del negocio es obligatorio")
+  .max(100, "El nombre del negocio no puede superar los 100 caracteres")
+  .transform((val) => val.trim());
+
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(randomInt(0, chars.length));
   }
   return code;
 }
+
+const registerOwnerSchema = z.object({
+  name: nameSchema,
+  businessName: businessNameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+});
 
 export async function registerOwner(data: {
   name: string;
@@ -35,15 +71,29 @@ export async function registerOwner(data: {
   email: string;
   password: string;
 }) {
+  const parsed = registerOwnerSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
+  }
+
+  const { name, businessName, email, password } = parsed.data;
+
+  const rateLimit = checkRateLimit(`register:${email}`);
+  if (!rateLimit.allowed) {
+    throw new Error("Demasiados intentos. Volvé a intentar más tarde.");
+  }
+
   const existingUser = await prisma.user.findUnique({
-    where: { email: data.email },
+    where: { email },
   });
 
   if (existingUser) {
-    throw new Error("El email ya está registrado");
+    // Generic message to avoid email enumeration on public registration.
+    throw new Error("No se pudo completar el registro");
   }
 
-  const hashedPassword = await bcrypt.hash(data.password, 12);
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   // Generar código único
   let inviteCode = generateInviteCode();
@@ -58,15 +108,15 @@ export async function registerOwner(data: {
   const user = await prisma.$transaction(async (tx) => {
     const business = await tx.business.create({
       data: {
-        name: data.businessName,
+        name: businessName,
         inviteCode,
       },
     });
 
     return tx.user.create({
       data: {
-        name: data.name,
-        email: data.email,
+        name,
+        email,
         password: hashedPassword,
         role: UserRole.OWNER,
         businessId: business.id,
@@ -77,14 +127,38 @@ export async function registerOwner(data: {
   return { success: true, userId: user.id };
 }
 
+const registerEmployeeSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+  inviteCode: z
+    .string()
+    .min(4, "El código de invitación es inválido")
+    .max(20, "El código de invitación es inválido")
+    .transform((val) => val.toUpperCase().trim()),
+});
+
 export async function registerEmployee(data: {
   name: string;
   email: string;
   password: string;
   inviteCode: string;
 }) {
+  const parsed = registerEmployeeSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
+  }
+
+  const { name, email, password, inviteCode } = parsed.data;
+
+  const rateLimit = checkRateLimit(`register:${email}`);
+  if (!rateLimit.allowed) {
+    throw new Error("Demasiados intentos. Volvé a intentar más tarde.");
+  }
+
   const business = await prisma.business.findUnique({
-    where: { inviteCode: data.inviteCode.toUpperCase() },
+    where: { inviteCode },
   });
 
   if (!business) {
@@ -92,19 +166,19 @@ export async function registerEmployee(data: {
   }
 
   const existingUser = await prisma.user.findUnique({
-    where: { email: data.email },
+    where: { email },
   });
 
   if (existingUser) {
-    throw new Error("El email ya está registrado");
+    throw new Error("No se pudo completar el registro");
   }
 
-  const hashedPassword = await bcrypt.hash(data.password, 12);
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
     data: {
-      name: data.name,
-      email: data.email,
+      name,
+      email,
       password: hashedPassword,
       role: UserRole.EMPLOYEE,
       businessId: business.id,
@@ -114,6 +188,12 @@ export async function registerEmployee(data: {
   return { success: true, userId: user.id };
 }
 
+const createEmployeeSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+});
+
 export async function createEmployeeByOwner(data: {
   name: string;
   email: string;
@@ -121,20 +201,28 @@ export async function createEmployeeByOwner(data: {
 }) {
   const owner = requireOwner(await getCurrentUser());
 
+  const parsed = createEmployeeSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
+  }
+
+  const { name, email, password } = parsed.data;
+
   const existingUser = await prisma.user.findUnique({
-    where: { email: data.email },
+    where: { email },
   });
 
   if (existingUser) {
     throw new Error("El email ya está registrado");
   }
 
-  const hashedPassword = await bcrypt.hash(data.password, 12);
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
     data: {
-      name: data.name,
-      email: data.email,
+      name,
+      email,
       password: hashedPassword,
       role: UserRole.EMPLOYEE,
       businessId: owner.businessId,
@@ -172,11 +260,24 @@ export async function deleteEmployee(userId: string) {
   return { success: true };
 }
 
+const updateProfileSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+});
+
 export async function updateProfile(data: { name: string; email: string }) {
   const currentUser = checkBusinessAccess(await getCurrentUser());
 
+  const parsed = updateProfileSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
+  }
+
+  const { name, email } = parsed.data;
+
   const existing = await prisma.user.findUnique({
-    where: { email: data.email },
+    where: { email },
   });
 
   if (existing && existing.id !== currentUser.id) {
@@ -185,9 +286,16 @@ export async function updateProfile(data: { name: string; email: string }) {
 
   const user = await prisma.user.update({
     where: { id: currentUser.id },
-    data: {
-      name: data.name,
-      email: data.email,
+    data: { name, email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      image: true,
+      businessId: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
@@ -195,8 +303,21 @@ export async function updateProfile(data: { name: string; email: string }) {
   return { success: true, user };
 }
 
+const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
+  newPassword: passwordSchema,
+});
+
 export async function updatePassword(data: { currentPassword: string; newPassword: string }) {
   const currentUser = checkBusinessAccess(await getCurrentUser());
+
+  const parsed = updatePasswordSchema.safeParse(data);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
 
   const user = await prisma.user.findUnique({
     where: { id: currentUser.id },
@@ -206,12 +327,12 @@ export async function updatePassword(data: { currentPassword: string; newPasswor
     throw new Error("Usuario no encontrado");
   }
 
-  const isValid = await bcrypt.compare(data.currentPassword, user.password);
+  const isValid = await bcrypt.compare(currentPassword, user.password);
   if (!isValid) {
     throw new Error("La contraseña actual es incorrecta");
   }
 
-  const hashedPassword = await bcrypt.hash(data.newPassword, 12);
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
 
   await prisma.user.update({
     where: { id: currentUser.id },
@@ -222,10 +343,22 @@ export async function updatePassword(data: { currentPassword: string; newPasswor
 }
 
 export async function getBusinessById(id: string) {
+  const user = checkBusinessAccess(await getCurrentUser());
+
+  if (id !== user.businessId) {
+    throw new Error("No autorizado");
+  }
+
   const business = await prisma.business.findUnique({
     where: { id },
-    select: { id: true, name: true, logo: true, inviteCode: true },
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      inviteCode: user.role === "OWNER",
+    },
   });
+
   return business;
 }
 
@@ -239,8 +372,8 @@ export async function updateBusiness(data: { name: string; logo?: string | null 
 
   const parsed = updateBusinessSchema.safeParse(data);
   if (!parsed.success) {
-    const error = parsed.error.issues[0];
-    throw new Error(error?.message || "Datos inválidos");
+    const issue = parsed.error.issues[0];
+    throw new Error(issue?.message || "Datos inválidos");
   }
 
   const business = await prisma.business.update({
@@ -258,7 +391,7 @@ export async function updateBusiness(data: { name: string; logo?: string | null 
 }
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
-const MAX_logo_sin_fondo_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 
 export async function uploadLogoToCloudinary(formData: FormData) {
   const owner = requireOwner(await getCurrentUser());
@@ -272,7 +405,7 @@ export async function uploadLogoToCloudinary(formData: FormData) {
     throw new Error("Formato no válido. Usá PNG, JPG, WEBP o SVG.");
   }
 
-  if (file.size > MAX_logo_sin_fondo_SIZE) {
+  if (file.size > MAX_LOGO_SIZE) {
     throw new Error("La imagen no debe superar los 2 MB.");
   }
 
@@ -291,7 +424,8 @@ export async function uploadLogoToCloudinary(formData: FormData) {
 
     return { url: result.secure_url };
   } catch (error) {
-    console.error("Error uploading logo to Cloudinary:", error);
+    // Log only a generic marker; never forward the raw error to the client.
+    console.error("Logo upload failed");
     throw new Error("Error al subir el logo. Intentá de nuevo.");
   }
 }

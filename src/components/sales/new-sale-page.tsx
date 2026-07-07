@@ -331,7 +331,6 @@ export function NewSalePage({
     setIsSubmitting(true);
     try {
       await createSale({
-        userId: session.user.id,
         items: cart
           .filter((item) => item.type === "product")
           .map((item) => ({

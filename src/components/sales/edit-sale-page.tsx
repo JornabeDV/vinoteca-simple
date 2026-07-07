@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Martini,
   Percent,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { updateSale } from "@/lib/actions";
-import { formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
+import { cn, formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -86,6 +87,7 @@ export function EditSalePage({
     Math.max(0, Math.min(100, Number(sale.discountPercentage) || 0))
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentExpanded, setIsPaymentExpanded] = useState(false);
 
   // Stock ajustado: el stock actual más lo que ya está reservado en esta venta
   const originalQtyByProduct = useMemo(() => {
@@ -268,7 +270,6 @@ export function EditSalePage({
     setIsSubmitting(true);
     try {
       await updateSale(sale.id, {
-        userId: session.user.id,
         items: cart
           .filter((item) => item.type === "product")
           .map((item) => ({
@@ -315,64 +316,70 @@ export function EditSalePage({
             {cart.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
+                className="flex flex-col sm:flex-row gap-2 sm:gap-3 rounded-lg border border-border/50 p-3"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-10 w-10 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <Wine className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    {item.type === "promotion" && (
-                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                        Promo
-                      </Badge>
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <Wine className="h-5 w-5 text-muted-foreground" />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {item.type === "promotion" ? "Combo" : item.brand}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2">
+                      <p className="text-sm font-medium leading-tight line-clamp-2 sm:line-clamp-1">
+                        {item.name}
+                      </p>
+                      {item.type === "promotion" && (
+                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 shrink-0">
+                          Promo
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {item.type === "promotion" ? "Combo" : item.brand}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 shrink-0">
                   <p className="text-sm font-semibold text-[#7b1f3a]">
                     {formatPrice(item.salePrice * item.quantity)}
                   </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={() => updateQuantity(item.id, -1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-7 text-center text-sm font-medium">
+                      {item.quantity}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={() => updateQuantity(item.id, 1)}
+                      disabled={item.quantity >= item.availableStock}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={() => updateQuantity(item.id, -1)}
-                    disabled={item.quantity <= 1}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="w-7 text-center text-sm font-medium">
-                    {item.quantity}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={() => updateQuantity(item.id, 1)}
-                    disabled={item.quantity >= item.availableStock}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => removeFromCart(item.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
               </div>
             ))}
           </div>
@@ -380,51 +387,70 @@ export function EditSalePage({
       </div>
 
       <div className="border-t border-border/50 p-4 space-y-3 bg-card">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Forma de pago</Label>
-          <Select
-            value={paymentMethod}
-            onValueChange={(value) =>
-              handlePaymentMethodChange(value as keyof typeof paymentMethodLabels)
-            }
-          >
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue>{getPaymentMethodLabel(paymentMethod)}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="CASH">Efectivo</SelectItem>
-              <SelectItem value="CREDIT_CARD">Tarjeta de crédito</SelectItem>
-              <SelectItem value="DEBIT_CARD">Tarjeta de débito</SelectItem>
-              <SelectItem value="TRANSFER">Transferencia</SelectItem>
-              <SelectItem value="DIGITAL_WALLET">Billetera digital</SelectItem>
-              <SelectItem value="ACCOUNT">Cuenta corriente</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsPaymentExpanded((v) => !v)}
+          className="sm:hidden flex w-full items-center justify-between gap-3 rounded-lg border border-border/50 bg-background px-3 py-2.5 text-left"
+        >
+          <span className="text-xs text-muted-foreground">Forma de pago</span>
+          <span className="text-sm font-medium flex items-center gap-1">
+            {getPaymentMethodLabel(paymentMethod)}
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform",
+                isPaymentExpanded && "rotate-180"
+              )}
+            />
+          </span>
+        </button>
 
-        {cart.length > 0 && (
+        <div className={cn("space-y-3", !isPaymentExpanded && "hidden sm:block")}>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Percent className="h-3 w-3" />
-              Descuento rápido
-            </Label>
-            <div className="flex gap-2">
-              {[0, 5, 10, 20].map((pct) => (
-                <button
-                  key={pct}
-                  onClick={() => setDiscountPercentage(pct)}
-                  className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
-                    discountPercentage === pct
-                      ? "bg-[#7b1f3a] text-white"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {pct > 0 ? `-${pct}%` : "Sin dto."}
-                </button>
-              ))}
-            </div>
+            <Label className="text-xs text-muted-foreground hidden sm:block">Forma de pago</Label>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) =>
+                handlePaymentMethodChange(value as keyof typeof paymentMethodLabels)
+              }
+            >
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue>{getPaymentMethodLabel(paymentMethod)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CASH">Efectivo</SelectItem>
+                <SelectItem value="CREDIT_CARD">Tarjeta de crédito</SelectItem>
+                <SelectItem value="DEBIT_CARD">Tarjeta de débito</SelectItem>
+                <SelectItem value="TRANSFER">Transferencia</SelectItem>
+                <SelectItem value="DIGITAL_WALLET">Billetera digital</SelectItem>
+                <SelectItem value="ACCOUNT">Cuenta corriente</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
+
+          {cart.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Percent className="h-3 w-3" />
+                Descuento rápido
+              </Label>
+              <div className="flex gap-2">
+                {[0, 5, 10, 20].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => setDiscountPercentage(pct)}
+                    className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                      discountPercentage === pct
+                        ? "bg-[#7b1f3a] text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {pct > 0 ? `-${pct}%` : "Sin dto."}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
@@ -688,7 +714,7 @@ export function EditSalePage({
                     {cartCount}
                   </div>
                 </SheetTrigger>
-                <SheetContent side="bottom" className="h-[80vh] p-0 flex flex-col">
+                <SheetContent side="bottom" className="!h-dvh p-0 flex flex-col overflow-hidden">
                   <SheetHeader className="px-4 py-3 border-b border-border/50">
                     <SheetTitle className="flex items-center gap-2">
                       <ShoppingCart className="h-4 w-4 text-[#7b1f3a]" />

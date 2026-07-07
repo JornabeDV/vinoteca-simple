@@ -3,8 +3,9 @@ import { getSaleById } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, User, Calendar, CreditCard, Pencil, Tag } from "lucide-react";
+import { ShoppingCart, User, Calendar, CreditCard, Pencil, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/ui/back-button";
 import { DeleteSaleButton } from "@/components/sales/delete-sale-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -28,54 +29,57 @@ export default async function SaleDetail({
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/ventas">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="font-heading text-2xl font-bold tracking-tight">
-              {sale.saleNumber}
-            </h2>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {new Date(sale.createdAt).toLocaleString("es-AR")}
-              </span>
-              <span className="flex items-center gap-1">
-                <User className="h-3.5 w-3.5" />
-                {sale.user?.name || sale.user?.email}
-              </span>
-              {sale.customer && (
+        <div className="flex flex-col gap-2">
+          <BackButton href="/ventas" />
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="font-heading text-2xl font-bold tracking-tight break-words">
+                {sale.saleNumber}
+              </h2>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
                 <span className="flex items-center gap-1">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  {sale.customer.name}
+                  <Calendar className="h-3.5 w-3.5" />
+                  {new Date(sale.createdAt).toLocaleString("es-AR")}
                 </span>
-              )}
-              <Badge
-                variant="outline"
-                className={`text-xs ${
-                  sale.isPaid
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-amber-200 bg-amber-50 text-amber-700"
-                }`}
-              >
-                {getPaymentMethodLabel(sale.paymentMethod || "CASH")}
-              </Badge>
+                <span className="flex items-center gap-1">
+                  <User className="h-3.5 w-3.5" />
+                  {sale.user?.name || sale.user?.email}
+                </span>
+                {sale.customer && (
+                  <span className="flex items-center gap-1">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    {sale.customer.name}
+                  </span>
+                )}
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    sale.isPaid
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {getPaymentMethodLabel(sale.paymentMethod || "CASH")}
+                </Badge>
+              </div>
             </div>
+            {isOwner && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                <Link href={`/ventas/editar/${sale.id}`} className="w-full sm:w-auto">
+                  <Button variant="outline" className="gap-2 w-full">
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </Button>
+                </Link>
+                <DeleteSaleButton
+                  saleId={sale.id}
+                  saleNumber={sale.saleNumber}
+                  variant="button"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            )}
           </div>
-          {isOwner && (
-            <div className="flex items-center gap-2 ml-auto">
-              <Link href={`/ventas/editar/${sale.id}`}>
-                <Button variant="outline" className="gap-2">
-                  <Pencil className="h-4 w-4" />
-                  Editar
-                </Button>
-              </Link>
-              <DeleteSaleButton saleId={sale.id} saleNumber={sale.saleNumber} variant="button" />
-            </div>
-          )}
         </div>
 
         <Card className="border-border/50">

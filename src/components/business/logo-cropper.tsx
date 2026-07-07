@@ -53,8 +53,8 @@ export function LogoCropper({
         "image/png",
         0.9
       );
-    } catch (error) {
-      console.error("Error cropping logo:", error);
+    } catch {
+      console.error("Logo crop failed");
       setIsCropping(false);
     }
   }

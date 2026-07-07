@@ -8,17 +8,20 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { deleteSale } from "@/lib/actions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface DeleteSaleButtonProps {
   saleId: string;
   saleNumber: string;
   variant?: "icon" | "button";
+  className?: string;
 }
 
 export function DeleteSaleButton({
   saleId,
   saleNumber,
   variant = "icon",
+  className,
 }: DeleteSaleButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +43,7 @@ export function DeleteSaleButton({
     variant === "button" ? (
       <Button
         variant="outline"
-        className="gap-2 text-muted-foreground hover:text-destructive"
+        className={cn("gap-2 text-muted-foreground hover:text-destructive", className)}
       >
         <Trash2 className="h-4 w-4" />
         Eliminar

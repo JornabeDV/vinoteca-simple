@@ -3,6 +3,7 @@ import { PrismaClient, UserRole, ProductStatus, ProductType, MovementType } from
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -59,7 +60,15 @@ function randDate(daysBack: number): Date {
   return d;
 }
 
+function generateSecurePassword(): string {
+  return randomBytes(16).toString("hex");
+}
+
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("El seed no puede ejecutarse en producción.");
+  }
+
   console.log("🌱 Iniciando seed masivo...");
 
   // ─── LIMPIAR DATOS EXISTENTES ───
@@ -86,10 +95,21 @@ async function main() {
   console.log(`✅ Negocio creado: ${business.name} (código: ${business.inviteCode})`);
 
   // ─── USUARIOS ───
-  const ownerPass = await bcrypt.hash("owner123", 12);
-  const empPass = await bcrypt.hash("empleado123", 12);
+  // Use environment-provided passwords for seed accounts, or generate secure
+  // random ones so no hardcoded credentials end up in the database.
+  const ownerPass = await bcrypt.hash(
+    process.env.SEED_OWNER_PASSWORD || generateSecurePassword(),
+    12
+  );
+  const empPass = await bcrypt.hash(
+    process.env.SEED_EMPLOYEE_PASSWORD || generateSecurePassword(),
+    12
+  );
+  const adminPass = await bcrypt.hash(
+    process.env.SEED_ADMIN_PASSWORD || generateSecurePassword(),
+    12
+  );
 
-  const adminPass = await bcrypt.hash("admin123", 12);
   const admin = await prisma.user.create({
     data: {
       email: "admin@vinotecasimple.com",
@@ -471,11 +491,10 @@ async function main() {
   console.log(`✅ Reabastecimientos creados`);
 
   console.log("\n🎉 Seed masivo completado!");
-  console.log("Credenciales:");
-  console.log("  admin@vinotecasimple.com / admin123  (super admin)");
-  console.log("  owner@vinotecasimple.com / owner123");
-  console.log("  empleado@vinotecasimple.com / empleado123");
-  console.log("  juan@vinotecasimple.com / empleado123");
+  console.log("Usuarios de prueba creados.");
+  console.log(
+    "Si no configuraste SEED_ADMIN_PASSWORD, SEED_OWNER_PASSWORD o SEED_EMPLOYEE_PASSWORD, las contraseñas fueron generadas aleatoriamente."
+  );
   console.log(`Código de invitación: ${business.inviteCode}`);
 }
 

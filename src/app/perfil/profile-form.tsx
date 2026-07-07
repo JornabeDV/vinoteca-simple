@@ -55,8 +55,24 @@ export function ProfileForm({ user }: ProfileFormProps) {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("La nueva contraseña debe tener al menos 6 caracteres");
+    if (newPassword.length < 8) {
+      toast.error("La nueva contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    if (newPassword.length > 100) {
+      toast.error("La contraseña no puede superar los 100 caracteres");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      toast.error("La contraseña debe tener al menos una mayúscula");
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      toast.error("La contraseña debe tener al menos una minúscula");
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      toast.error("La contraseña debe tener al menos un número");
       return;
     }
 
@@ -106,6 +122,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -145,6 +162,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <Input
                   id="currentPassword"
                   type={showCurrent ? "text" : "password"}
+                  autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
@@ -169,6 +187,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <Input
                   id="newPassword"
                   type={showNew ? "text" : "password"}
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -192,6 +211,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               <Input
                 id="confirmPassword"
                 type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required

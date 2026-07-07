@@ -2,7 +2,7 @@
 
 import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
-import { MovementType, ProductStatus, ProductType, PaymentMethod, Prisma } from "@prisma/client";
+import { MovementType, ProductStatus, ProductType, PaymentMethod, Prisma, BusinessStatus } from "@prisma/client";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
 
@@ -10,6 +10,16 @@ function checkBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   if (!user) throw new Error("No autenticado");
   if (!user.businessId) throw new Error("No perteneces a ningún negocio");
   return user as typeof user & { businessId: string };
+}
+
+async function checkBusinessNotSuspended(businessId: string) {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { status: true },
+  });
+  if (business?.status === BusinessStatus.SUSPENDED) {
+    throw new Error("Tu negocio se encuentra suspendido. Contactá al soporte.");
+  }
 }
 
 function requireOwner(user: Awaited<ReturnType<typeof getCurrentUser>>) {
@@ -28,7 +38,99 @@ async function verifyBusinessAccess(user: Awaited<ReturnType<typeof getCurrentUs
       "Tu negocio no fue encontrado. Es probable que los datos hayan cambiado. Por favor, cerrá sesión y volvé a ingresar."
     );
   }
+  if (business.status === BusinessStatus.SUSPENDED) {
+    throw new Error("Tu negocio se encuentra suspendido. Contactá al soporte.");
+  }
   return u;
+}
+
+const categorySelect = {
+  id: true,
+  name: true,
+  description: true,
+  color: true,
+  businessId: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.CategorySelect;
+
+// Field selectors that avoid leaking sensitive data to non-owner roles.
+const publicProductSelect = {
+  id: true,
+  name: true,
+  brand: true,
+  style: true,
+  year: true,
+  description: true,
+  productType: true,
+  salePrice: true,
+  currentStock: true,
+  minStock: true,
+  image: true,
+  status: true,
+  categoryId: true,
+  businessId: true,
+  createdAt: true,
+  updatedAt: true,
+  category: { select: categorySelect },
+} satisfies Prisma.ProductSelect;
+
+const ownerProductSelect = {
+  ...publicProductSelect,
+  costPrice: true,
+} satisfies Prisma.ProductSelect;
+
+function productSelectForRole(role?: string) {
+  return role === "OWNER" ? ownerProductSelect : publicProductSelect;
+}
+
+function userSelectForRole(role?: string) {
+  return role === "OWNER"
+    ? ({ name: true, email: true } as const)
+    : ({ name: true } as const);
+}
+
+function promotionSelectForRole(role?: string) {
+  return {
+    id: true,
+    name: true,
+    description: true,
+    salePrice: true,
+    status: true,
+    businessId: true,
+    createdAt: true,
+    updatedAt: true,
+    items: {
+      select: {
+        id: true,
+        promotionId: true,
+        productId: true,
+        quantity: true,
+        product: { select: productSelectForRole(role) },
+      },
+    },
+  } satisfies Prisma.PromotionSelect;
+}
+
+function saleIncludeForRole(role?: string) {
+  return {
+    user: { select: userSelectForRole(role) },
+    customer: { select: { name: true, id: true } as const },
+    items: {
+      include: {
+        product: { select: productSelectForRole(role) },
+      },
+    },
+    salePromotions: {
+      include: {
+        items: {
+          include: {
+            product: { select: productSelectForRole(role) },
+          },
+        },
+      },
+    },
+  };
 }
 
 // ─── Category Actions ───
@@ -165,8 +267,9 @@ async function upsertCategoryByName(
 
 export async function getProducts(search?: string, status?: ProductStatus) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
-  const where: any = { businessId: user.businessId };
+  const where: Prisma.ProductWhereInput = { businessId: user.businessId };
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
@@ -179,17 +282,20 @@ export async function getProducts(search?: string, status?: ProductStatus) {
 
   const products = await prisma.product.findMany({
     where,
-    include: { category: true },
+    select: productSelectForRole(user.role),
     orderBy: { createdAt: "desc" },
+    take: 500,
   });
   return serializeData(products);
 }
 
 export async function getProductById(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const product = await prisma.product.findFirst({
     where: { id, businessId: user.businessId },
+    select: productSelectForRole(user.role),
   });
   return serializeData(product);
 }
@@ -217,6 +323,13 @@ export async function createProduct(data: {
 
   const product = await prisma.$transaction(async (tx) => {
     let categoryId = productData.categoryId;
+
+    if (categoryId) {
+      const category = await tx.category.findFirst({
+        where: { id: categoryId, businessId: user.businessId },
+      });
+      if (!category) throw new Error("Categoría inválida");
+    }
 
     if (!categoryId && categoryName) {
       const category = await upsertCategoryByName(
@@ -286,6 +399,13 @@ export async function updateProduct(
 
   const product = await prisma.$transaction(async (tx) => {
     let categoryId = productData.categoryId;
+
+    if (categoryId) {
+      const category = await tx.category.findFirst({
+        where: { id: categoryId, businessId: user.businessId },
+      });
+      if (!category) throw new Error("Categoría inválida");
+    }
 
     if (categoryName !== undefined && !categoryId) {
       const category = await upsertCategoryByName(
@@ -363,24 +483,27 @@ export async function deleteProduct(id: string) {
 
 export async function getPromotions(status?: ProductStatus) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
-  const where: any = { businessId: user.businessId };
+  const where: Prisma.PromotionWhereInput = { businessId: user.businessId };
   if (status) where.status = status;
 
   const promotions = await prisma.promotion.findMany({
     where,
-    include: { items: { include: { product: true } } },
+    select: promotionSelectForRole(user.role),
     orderBy: { createdAt: "desc" },
+    take: 500,
   });
   return serializeData(promotions);
 }
 
 export async function getPromotionById(id: string) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const promotion = await prisma.promotion.findFirst({
     where: { id, businessId: user.businessId },
-    include: { items: { include: { product: true } } },
+    select: promotionSelectForRole(user.role),
   });
   return serializeData(promotion);
 }
@@ -415,7 +538,7 @@ export async function createPromotion(data: {
         })),
       },
     },
-    include: { items: { include: { product: true } } },
+    select: promotionSelectForRole(user.role),
   });
 
   revalidatePath("/promos");
@@ -444,6 +567,16 @@ export async function updatePromotion(
     throw new Error("La promo debe tener al menos un producto");
   }
 
+  if (data.items) {
+    const productIds = data.items.map((i) => i.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds }, businessId: user.businessId },
+    });
+    if (products.length !== productIds.length) {
+      throw new Error("Uno o más productos no fueron encontrados");
+    }
+  }
+
   const promotion = await prisma.$transaction(async (tx) => {
     if (data.items) {
       await tx.promotionItem.deleteMany({ where: { promotionId: id } });
@@ -465,7 +598,7 @@ export async function updatePromotion(
             }
           : undefined,
       },
-      include: { items: { include: { product: true } } },
+      select: promotionSelectForRole(user.role),
     });
   });
 
@@ -631,11 +764,11 @@ export async function importProducts(
     revalidatePath("/");
 
     return { success: true, count: result };
-  } catch (error: any) {
-    console.error("Import error:", error);
+  } catch (error) {
+    console.error("Import error");
     return {
       success: false,
-      error: error.message || "Error al importar productos",
+      error: "Error al importar productos. Verificá el formato y volvé a intentar.",
       count: 0,
     };
   }
@@ -645,15 +778,16 @@ export async function importProducts(
 
 export async function getInventoryMovements(productId?: string) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
-  const where: any = { businessId: user.businessId };
+  const where: Prisma.InventoryMovementWhereInput = { businessId: user.businessId };
   if (productId) where.productId = productId;
 
   const movements = await prisma.inventoryMovement.findMany({
     where,
     include: {
-      product: true,
-      user: { select: { name: true, email: true } },
+      product: { select: productSelectForRole(user.role) },
+      user: { select: userSelectForRole(user.role) },
     },
     orderBy: { createdAt: "desc" },
     take: 300,
@@ -705,53 +839,42 @@ export async function adjustStock(data: {
 
 export async function getSales(search?: string) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
-  const where: any = { businessId: user.businessId };
+  const where: Prisma.SaleWhereInput = { businessId: user.businessId };
   if (search) {
     where.saleNumber = { contains: search, mode: "insensitive" };
   }
 
   const sales = await prisma.sale.findMany({
     where,
-    include: {
-      user: { select: { name: true, email: true } },
-      customer: { select: { name: true } },
-      items: {
-        include: { product: true },
-      },
-      salePromotions: {
-        include: { items: { include: { product: true } } },
-      },
-    },
+    include: saleIncludeForRole(user.role),
     orderBy: { createdAt: "desc" },
     take: 300,
   });
   return serializeData(sales);
 }
 
-const saleWithDetailsArgs = {
-  include: {
-    user: { select: { name: true, email: true } as const },
-    customer: { select: { name: true, id: true } as const },
-    items: { include: { product: true } },
-    salePromotions: { include: { items: { include: { product: true } } } },
-  },
-} satisfies Prisma.SaleFindFirstArgs;
+function saleWithDetailsArgs(role?: string) {
+  return {
+    include: saleIncludeForRole(role),
+  } satisfies Prisma.SaleFindFirstArgs;
+}
 
-export type SaleWithDetails = Prisma.SaleGetPayload<typeof saleWithDetailsArgs>;
+export type SaleWithDetails = Prisma.SaleGetPayload<ReturnType<typeof saleWithDetailsArgs>>;
 
 export async function getSaleById(id: string): Promise<SaleWithDetails | null> {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const sale = await prisma.sale.findFirst({
     where: { id, businessId: user.businessId },
-    ...saleWithDetailsArgs,
+    ...saleWithDetailsArgs(user.role),
   });
   return serializeData(sale);
 }
 
 export async function createSale(data: {
-  userId: string;
   items: { productId: string; quantity: number }[];
   promotions?: { promotionId: string; quantity: number }[];
   customerId?: string;
@@ -760,6 +883,22 @@ export async function createSale(data: {
   discountPercentage?: number;
 }) {
   const user = checkBusinessAccess(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
+
+  if (!data.items.length && (!data.promotions || !data.promotions.length)) {
+    throw new Error("La venta debe tener al menos un producto o promo");
+  }
+
+  for (const item of data.items) {
+    if (!item.productId || item.quantity <= 0) {
+      throw new Error("Cantidad inválida");
+    }
+  }
+  for (const promo of data.promotions || []) {
+    if (!promo.promotionId || promo.quantity <= 0) {
+      throw new Error("Cantidad de promo inválida");
+    }
+  }
 
   if (data.customerId) {
     const customer = await prisma.customer.findFirst({
@@ -822,11 +961,11 @@ export async function createSale(data: {
     }
   }
 
-  const sale = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     const createdSale = await tx.sale.create({
       data: {
         saleNumber,
-        userId: data.userId,
+        userId: user.id,
         businessId: user.businessId,
         customerId: data.customerId,
         totalAmount: 0,
@@ -896,7 +1035,7 @@ export async function createSale(data: {
       await tx.inventoryMovement.create({
         data: {
           productId,
-          userId: data.userId,
+          userId: user.id,
           businessId: user.businessId,
           quantity: -needed,
           type: MovementType.SALE,
@@ -909,20 +1048,19 @@ export async function createSale(data: {
     const discountAmount = Math.round((subtotal * discountPercentage) / 100);
     const totalAmount = subtotal - discountAmount;
 
-    return tx.sale.update({
+    await tx.sale.update({
       where: { id: createdSale.id },
       data: {
         totalAmount,
         discountPercentage,
         discountAmount,
       },
-      include: {
-        user: { select: { name: true, email: true } },
-        customer: { select: { name: true, id: true } },
-        items: { include: { product: true } },
-        salePromotions: { include: { items: { include: { product: true } } } },
-      },
     });
+  });
+
+  const sale = await prisma.sale.findFirst({
+    where: { saleNumber, businessId: user.businessId },
+    ...saleWithDetailsArgs(user.role),
   });
 
   revalidatePath("/ventas");
@@ -935,7 +1073,6 @@ export async function createSale(data: {
 export async function updateSale(
   id: string,
   data: {
-    userId: string;
     items: { productId: string; quantity: number }[];
     promotions?: { promotionId: string; quantity: number }[];
     customerId?: string;
@@ -945,6 +1082,7 @@ export async function updateSale(
   }
 ) {
   const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const existingSale = await prisma.sale.findFirst({
     where: { id, businessId: user.businessId },
@@ -964,6 +1102,17 @@ export async function updateSale(
 
   if (data.items.length === 0 && (!data.promotions || data.promotions.length === 0)) {
     throw new Error("La venta debe tener al menos un producto o promo");
+  }
+
+  for (const item of data.items) {
+    if (!item.productId || item.quantity <= 0) {
+      throw new Error("Cantidad inválida");
+    }
+  }
+  for (const promo of data.promotions || []) {
+    if (!promo.promotionId || promo.quantity <= 0) {
+      throw new Error("Cantidad de promo inválida");
+    }
   }
 
   const promotions = data.promotions?.length
@@ -1037,7 +1186,7 @@ export async function updateSale(
 
   let subtotal = 0;
 
-  const updatedSale = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     // 1. Revertir stock original
     for (const [productId, originalQty] of originalQtyByProduct.entries()) {
       await tx.product.update({
@@ -1132,7 +1281,7 @@ export async function updateSale(
       await tx.inventoryMovement.create({
         data: {
           productId,
-          userId: data.userId,
+          userId: user.id,
           businessId: user.businessId,
           quantity: -newQty,
           type: MovementType.SALE,
@@ -1145,20 +1294,19 @@ export async function updateSale(
     const discountAmount = Math.round((subtotal * discountPercentage) / 100);
     const totalAmount = subtotal - discountAmount;
 
-    return tx.sale.update({
+    await tx.sale.update({
       where: { id },
       data: {
         totalAmount,
         discountPercentage,
         discountAmount,
       },
-      include: {
-        user: { select: { name: true, email: true } },
-        customer: { select: { name: true, id: true } },
-        items: { include: { product: true } },
-        salePromotions: { include: { items: { include: { product: true } } } },
-      },
     });
+  });
+
+  const updatedSale = await prisma.sale.findFirst({
+    where: { id, businessId: user.businessId },
+    ...saleWithDetailsArgs(user.role),
   });
 
   revalidatePath("/ventas");
@@ -1251,9 +1399,14 @@ export async function createExpenseCategory(data: { name: string; color?: string
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
+  const name = data.name.trim();
+  if (!name) throw new Error("El nombre es obligatorio");
+  if (name.length > 100) throw new Error("El nombre no puede superar los 100 caracteres");
+  if (data.color && data.color.length > 50) throw new Error("El color no puede superar los 50 caracteres");
+
   const category = await prisma.expenseCategory.create({
     data: {
-      name: data.name.trim(),
+      name,
       color: data.color?.trim(),
       businessId: user.businessId,
     },
@@ -1274,6 +1427,13 @@ export async function updateExpenseCategory(
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Categoría no encontrada");
+
+  if (data.name !== undefined) {
+    const name = data.name.trim();
+    if (!name) throw new Error("El nombre es obligatorio");
+    if (name.length > 100) throw new Error("El nombre no puede superar los 100 caracteres");
+  }
+  if (data.color && data.color.length > 50) throw new Error("El color no puede superar los 50 caracteres");
 
   const category = await prisma.expenseCategory.update({
     where: { id },
@@ -1303,7 +1463,7 @@ export async function deleteExpenseCategory(id: string) {
 }
 
 export async function getExpenses(search?: string, categoryId?: string, from?: string, to?: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const where: any = { businessId: user.businessId };
   if (search) {
@@ -1328,7 +1488,7 @@ export async function getExpenses(search?: string, categoryId?: string, from?: s
 }
 
 export async function getExpenseById(id: string) {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
 
   const expense = await prisma.expense.findFirst({
     where: { id, businessId: user.businessId },
@@ -1347,6 +1507,12 @@ export async function createExpense(data: {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
+  const concept = data.concept.trim();
+  if (!concept) throw new Error("El concepto es obligatorio");
+  if (concept.length > 200) throw new Error("El concepto no puede superar los 200 caracteres");
+  if (data.amount < 0) throw new Error("El monto no puede ser negativo");
+  if (data.notes && data.notes.length > 1000) throw new Error("Las notas no pueden superar los 1000 caracteres");
+
   if (data.categoryId) {
     const category = await prisma.expenseCategory.findFirst({
       where: { id: data.categoryId, businessId: user.businessId },
@@ -1356,7 +1522,7 @@ export async function createExpense(data: {
 
   const expense = await prisma.expense.create({
     data: {
-      concept: data.concept.trim(),
+      concept,
       amount: data.amount,
       date: new Date(data.date),
       notes: data.notes?.trim() || null,
@@ -1388,6 +1554,14 @@ export async function updateExpense(
     where: { id, businessId: user.businessId },
   });
   if (!existing) throw new Error("Gasto no encontrado");
+
+  if (data.concept !== undefined) {
+    const concept = data.concept.trim();
+    if (!concept) throw new Error("El concepto es obligatorio");
+    if (concept.length > 200) throw new Error("El concepto no puede superar los 200 caracteres");
+  }
+  if (data.amount !== undefined && data.amount < 0) throw new Error("El monto no puede ser negativo");
+  if (data.notes && data.notes.length > 1000) throw new Error("Las notas no pueden superar los 1000 caracteres");
 
   if (data.categoryId) {
     const category = await prisma.expenseCategory.findFirst({
@@ -1738,11 +1912,13 @@ export async function bulkUpdatePrices(data: {
 // ─── Customer Actions ───
 
 export async function getCustomers() {
-  const user = checkBusinessAccess(await getCurrentUser());
+  const user = requireOwner(await getCurrentUser());
+  await checkBusinessNotSuspended(user.businessId);
 
   const customers = await prisma.customer.findMany({
     where: { businessId: user.businessId },
     orderBy: { name: "asc" },
+    take: 500,
     include: {
       sales: {
         where: { isPaid: false },
@@ -1795,10 +1971,19 @@ export async function createCustomer(data: {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
+  const name = data.name.trim();
+  if (!name) throw new Error("El nombre es obligatorio");
+  if (name.length > 100) throw new Error("El nombre no puede superar los 100 caracteres");
+  if (data.email && data.email.length > 255) throw new Error("El email no puede superar los 255 caracteres");
+  if (data.phone && data.phone.length > 50) throw new Error("El teléfono no puede superar los 50 caracteres");
+  if (data.dni && data.dni.length > 50) throw new Error("El DNI/CUIT no puede superar los 50 caracteres");
+  if (data.address && data.address.length > 255) throw new Error("La dirección no puede superar los 255 caracteres");
+  if (data.notes && data.notes.length > 1000) throw new Error("Las notas no pueden superar los 1000 caracteres");
+
   const customer = await prisma.customer.create({
     data: {
-      name: data.name.trim(),
-      email: data.email?.trim() || null,
+      name,
+      email: data.email?.trim().toLowerCase() || null,
       phone: data.phone?.trim() || null,
       dni: data.dni?.trim() || null,
       address: data.address?.trim() || null,
@@ -1830,15 +2015,26 @@ export async function updateCustomer(
   });
   if (!existing) throw new Error("Cliente no encontrado");
 
+  if (data.name !== undefined) {
+    const name = data.name.trim();
+    if (!name) throw new Error("El nombre es obligatorio");
+    if (name.length > 100) throw new Error("El nombre no puede superar los 100 caracteres");
+  }
+  if (data.email && data.email.length > 255) throw new Error("El email no puede superar los 255 caracteres");
+  if (data.phone && data.phone.length > 50) throw new Error("El teléfono no puede superar los 50 caracteres");
+  if (data.dni && data.dni.length > 50) throw new Error("El DNI/CUIT no puede superar los 50 caracteres");
+  if (data.address && data.address.length > 255) throw new Error("La dirección no puede superar los 255 caracteres");
+  if (data.notes && data.notes.length > 1000) throw new Error("Las notas no pueden superar los 1000 caracteres");
+
   const customer = await prisma.customer.update({
     where: { id },
     data: {
       name: data.name?.trim(),
-      email: data.email?.trim() || null,
-      phone: data.phone?.trim() || null,
-      dni: data.dni?.trim() || null,
-      address: data.address?.trim() || null,
-      notes: data.notes?.trim() || null,
+      email: data.email !== undefined ? data.email?.trim().toLowerCase() || null : undefined,
+      phone: data.phone !== undefined ? data.phone?.trim() || null : undefined,
+      dni: data.dni !== undefined ? data.dni?.trim() || null : undefined,
+      address: data.address !== undefined ? data.address?.trim() || null : undefined,
+      notes: data.notes !== undefined ? data.notes?.trim() || null : undefined,
     },
   });
 
@@ -1868,6 +2064,9 @@ export async function createPayment(data: {
 }) {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
+
+  if (data.amount <= 0) throw new Error("El monto debe ser mayor a cero");
+  if (data.notes && data.notes.length > 1000) throw new Error("Las notas no pueden superar los 1000 caracteres");
 
   const customer = await prisma.customer.findFirst({
     where: { id: data.customerId, businessId: user.businessId },

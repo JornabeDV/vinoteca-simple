@@ -3,11 +3,22 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import { BusinessStatus } from "@prisma/client";
+
+// Constant-time dummy hash used to prevent timing attacks that enumerate
+// registered emails by measuring login response times.
+const DUMMY_PASSWORD_HASH =
+  "$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 hours
+  },
+  jwt: {
+    maxAge: 8 * 60 * 60, // 8 hours
   },
   pages: {
     signIn: "/login",
@@ -25,20 +36,30 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const normalizedEmail = credentials.email.toLowerCase().trim();
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: normalizedEmail },
+          include: { business: true },
         });
 
-        if (!user || !user.password) {
+        // Always run bcrypt.compare to keep response time constant and avoid
+        // email enumeration through timing analysis.
+        const passwordHash = user?.password ?? DUMMY_PASSWORD_HASH;
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          passwordHash
+        );
+
+        if (!user || !user.password || !isPasswordValid) {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
+        // Reject logins for users whose business has been suspended.
+        if (
+          user.businessId &&
+          user.business?.status === BusinessStatus.SUSPENDED
+        ) {
           return null;
         }
 

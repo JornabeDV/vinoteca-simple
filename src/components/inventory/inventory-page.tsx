@@ -47,7 +47,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { ProductCombobox } from "./product-combobox";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
 import { adjustStock } from "@/lib/actions";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, escapeCsvField } from "@/lib/utils";
 import { toast } from "sonner";
 import { MovementType } from "@prisma/client";
 
@@ -105,13 +105,13 @@ export function InventoryPage({
       "precio_venta",
     ];
     const rows = products.map((p) => [
-      p.name || "",
-      p.brand || "",
-      p.category?.name || "",
-      p.style || "",
-      (p.currentStock ?? "").toString(),
-      (p.minStock ?? "").toString(),
-      p.salePrice?.toString() || "",
+      escapeCsvField(p.name),
+      escapeCsvField(p.brand),
+      escapeCsvField(p.category?.name),
+      escapeCsvField(p.style),
+      escapeCsvField(p.currentStock ?? ""),
+      escapeCsvField(p.minStock ?? ""),
+      escapeCsvField(p.salePrice),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const csvWithBom = "\ufeff" + csv;

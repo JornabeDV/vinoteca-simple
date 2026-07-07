@@ -27,7 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { useDataTable, SortState } from "@/hooks/use-data-table";
-import { formatPrice, getPaymentMethodLabel } from "@/lib/utils";
+import { formatPrice, getPaymentMethodLabel, escapeCsvField } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
@@ -37,6 +37,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { deleteSale } from "@/lib/actions";
 
 export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string }) {
@@ -59,14 +60,14 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
   const handleExport = () => {
     const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "descuento", "total"];
     const rows = sales.map((s) => [
-      s.saleNumber || "",
-      s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : "",
-      s.user?.name || s.user?.email || "",
-      s.customer?.name || "",
-      getPaymentMethodLabel(s.paymentMethod),
-      (s.items?.length || 0).toString(),
-      `${s.discountPercentage || 0}%`,
-      s.totalAmount?.toString() || "",
+      escapeCsvField(s.saleNumber),
+      escapeCsvField(s.createdAt ? new Date(s.createdAt).toLocaleString("es-AR") : ""),
+      escapeCsvField(s.user?.name || s.user?.email),
+      escapeCsvField(s.customer?.name),
+      escapeCsvField(getPaymentMethodLabel(s.paymentMethod)),
+      escapeCsvField(s.items?.length || 0),
+      escapeCsvField(`${s.discountPercentage || 0}%`),
+      escapeCsvField(s.totalAmount),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const csvWithBom = "\ufeff" + csv;
@@ -132,13 +133,16 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold tracking-tight">
-          Historial de ventas
-        </h2>
-        <p className="text-muted-foreground">
-          Consultá y gestioná las ventas realizadas
-        </p>
+      <div className="flex flex-col gap-2">
+        <BackButton href="/ventas/nueva" />
+        <div>
+          <h2 className="font-heading text-2xl font-bold tracking-tight">
+            Historial de ventas
+          </h2>
+          <p className="text-muted-foreground">
+            Consultá y gestioná las ventas realizadas
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -235,7 +239,11 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                   </TableRow>
                 ) : (
                   paginatedSales.map((sale) => (
-                    <TableRow key={sale.id} className="group">
+                    <TableRow
+                      key={sale.id}
+                      className="group cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/ventas/detalle/${sale.id}`)}
+                    >
                       <TableCell>
                         <span className="font-medium">{sale.saleNumber}</span>
                       </TableCell>
@@ -278,7 +286,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       <TableCell className="font-semibold">
                         {formatPrice(Number(sale.totalAmount))}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <TooltipProvider delayDuration={200}>
                             <Tooltip>
@@ -328,7 +336,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="p-0 cursor-pointer text-muted-foreground hover:text-destructive"
+                                          className="p-0 cursor-pointer"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
