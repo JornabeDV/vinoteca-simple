@@ -37,6 +37,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { deleteSale } from "@/lib/actions";
 
 export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string }) {
@@ -132,13 +133,16 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold tracking-tight">
-          Historial de ventas
-        </h2>
-        <p className="text-muted-foreground">
-          Consultá y gestioná las ventas realizadas
-        </p>
+      <div className="flex flex-col gap-2">
+        <BackButton href="/ventas/nueva" />
+        <div>
+          <h2 className="font-heading text-2xl font-bold tracking-tight">
+            Historial de ventas
+          </h2>
+          <p className="text-muted-foreground">
+            Consultá y gestioná las ventas realizadas
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -235,7 +239,11 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                   </TableRow>
                 ) : (
                   paginatedSales.map((sale) => (
-                    <TableRow key={sale.id} className="group">
+                    <TableRow
+                      key={sale.id}
+                      className="group cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/ventas/detalle/${sale.id}`)}
+                    >
                       <TableCell>
                         <span className="font-medium">{sale.saleNumber}</span>
                       </TableCell>
@@ -278,7 +286,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       <TableCell className="font-semibold">
                         {formatPrice(Number(sale.totalAmount))}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <TooltipProvider delayDuration={200}>
                             <Tooltip>
@@ -328,7 +336,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="p-0 cursor-pointer text-muted-foreground hover:text-destructive"
+                                          className="p-0 cursor-pointer"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>
