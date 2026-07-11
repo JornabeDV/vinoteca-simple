@@ -277,7 +277,7 @@ export function PromotionForm({ promotion, products }: PromotionFormProps) {
                             {product?.name || "Producto"}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {[product?.brand, product?.style].filter(Boolean).join(" · ")}
+                            {product?.style && product?.style !== product?.name ? product?.style : undefined}
                           </p>
                         </div>
                         <Button

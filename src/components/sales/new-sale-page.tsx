@@ -413,9 +413,10 @@ export function NewSalePage({
             {cart.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col sm:flex-row gap-2 sm:gap-3 rounded-lg border border-border/50 p-3"
+                className="rounded-lg border border-border/50 p-3 space-y-3"
               >
-                <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Fila 1: icono + nombre + badge */}
+                <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                     {item.image ? (
                       <img
@@ -429,7 +430,7 @@ export function NewSalePage({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2">
-                      <p className="text-sm font-medium leading-tight line-clamp-2 sm:line-clamp-1">
+                      <p className="text-base font-medium leading-tight line-clamp-2">
                         {item.name}
                       </p>
                       {item.type === "promotion" && (
@@ -449,8 +450,10 @@ export function NewSalePage({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 shrink-0">
-                  <p className="text-sm font-semibold text-[#7b1f3a]">
+
+                {/* Fila 2: precio + controles */}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-base font-semibold text-[#7b1f3a]">
                     {formatPrice(item.salePrice * item.quantity)}
                   </p>
                   <div className="flex items-center gap-1">
