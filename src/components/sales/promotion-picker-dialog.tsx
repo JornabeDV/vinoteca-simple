@@ -58,7 +58,7 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
+      <DialogTrigger render={trigger} nativeButton={false} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading">{promotion.name}</DialogTitle>
@@ -114,11 +114,10 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{product?.name || "Producto"}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {product?.brand}
+                        {[product?.brand, product?.style].filter(Boolean).join(" · ")}
                         {product?.currentStock > 0 ? ` · ${product.currentStock} disp.` : " · Sin stock"}
                       </p>
                     </div>
-                    {checked && <Check className="h-4 w-4 text-[#7b1f3a] shrink-0" />}
                   </div>
                 );
               })}
