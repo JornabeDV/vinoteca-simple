@@ -138,7 +138,7 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
                       {product?.name || "Producto"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {[product?.brand, product?.style].filter(Boolean).join(" · ")}
+                      {product?.style && product?.style !== product?.name ? product?.style : undefined}
                       {product?.currentStock > 0
                         ? ` · ${product.currentStock} disp.`
                         : " · Sin stock"}
