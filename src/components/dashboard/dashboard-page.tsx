@@ -70,7 +70,7 @@ export function DashboardPage({
         </p>
       </div>
 
-      {/* KPI Cards -->
+      
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="dashboard-kpis">
         <KpiCard
           title="Ventas Hoy"
@@ -110,7 +110,7 @@ export function DashboardPage({
       </div>
 
       {/* Charts & Insights */}
-      <div className="grid gap-6 lg:grid-cols-3 pb-0 mb-0">
+      <div className="grid gap-6 lg:grid-cols-3 pb-0 mb-5">
         <Card className="lg:col-span-2 border-border/50">
           <CardHeader className="pb-2">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
