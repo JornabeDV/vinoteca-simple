@@ -36,10 +36,9 @@ export function LandingNavbar() {
       className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Left: Mobile hamburger + Desktop nav */}
-          <div className="flex items-center gap-4">
-            {/* Mobile menu trigger — LEFT side */}
+        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
+          {/* Left: Mobile hamburger / Desktop logo */}
+          <div className="flex items-center">
             <div className="lg:hidden">
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger>
@@ -49,23 +48,14 @@ export function LandingNavbar() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[85vw] sm:w-80 p-0">
                   {/* Drawer header */}
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-                    <div className="flex items-center gap-2.5">
-                      <Image
-                        src="/logo_imagen_sin_fondo.png"
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 rounded-lg object-contain"
-                      />
-                      <Image
-                        src="/logo_letra_sin_fondo.png"
-                        alt="Vinoteca Simple"
-                        width={120}
-                        height={28}
-                        className="h-6 w-auto object-contain"
-                      />
-                    </div>
+                  <div className="flex items-center justify-center px-5 py-6 border-b border-border/50">
+                    <Image
+                      src="/logo_letra_sin_fondo.png"
+                      alt="Vinoteca Simple"
+                      width={160}
+                      height={40}
+                      className="h-10 w-auto object-contain"
+                    />
                   </div>
 
                   {/* Drawer body */}
@@ -108,8 +98,8 @@ export function LandingNavbar() {
               </Sheet>
             </div>
 
-            {/* Logo — visible on all screens */}
-            <a href="#" className="flex items-center gap-2.5">
+            {/* Logo — desktop only */}
+            <a href="#" className="hidden lg:flex items-center gap-2.5">
               <Image
                 src="/logo_letra_sin_fondo.png"
                 alt="Vinoteca Simple"
@@ -120,34 +110,50 @@ export function LandingNavbar() {
             </a>
           </div>
 
-          {/* Desktop nav — center/right */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => scrollTo(link.href)}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </button>
-            ))}
-          </nav>
+          {/* Center: Logo mobile / Desktop nav */}
+          <div className="flex justify-center">
+            {/* Logo — mobile only */}
+            <a href="#" className="lg:hidden flex items-center gap-2.5">
+              <Image
+                src="/logo_letra_sin_fondo.png"
+                alt="Vinoteca Simple"
+                width={120}
+                height={28}
+                className="h-12 w-auto object-contain"
+              />
+            </a>
 
-          {/* Desktop CTA */}
-          <div className="hidden lg:flex items-center gap-3">
-            <Button
-              variant="outline"
-              className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 text-sm h-9"
-              onClick={() => router.push("/registro")}
-            >
-              Solicitar demo
-            </Button>
-            <Button
-              className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white text-sm h-9"
-              onClick={() => router.push("/registro")}
-            >
-              Empezar gratis
-            </Button>
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <button
+                  key={link.href}
+                  onClick={() => scrollTo(link.href)}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Right: Empty mobile / Desktop CTA */}
+          <div className="flex justify-end">
+            <div className="hidden lg:flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="border-[#7b1f3a] text-[#7b1f3a] hover:bg-[#7b1f3a]/5 text-sm h-9"
+                onClick={() => router.push("/registro")}
+              >
+                Solicitar demo
+              </Button>
+              <Button
+                className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white text-sm h-9"
+                onClick={() => router.push("/registro")}
+              >
+                Empezar gratis
+              </Button>
+            </div>
           </div>
         </div>
       </div>
