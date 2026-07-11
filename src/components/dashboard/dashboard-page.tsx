@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -50,6 +50,7 @@ export function DashboardPage({
   chartDays: number;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [chartMode, setChartMode] = useState<"revenue" | "sales" | "profit">("revenue");
 
   const timeFilters = [
@@ -123,7 +124,7 @@ export function DashboardPage({
                       variant={chartDays === f.value ? "secondary" : "ghost"}
                       size="sm"
                       className="text-xs px-2 sm:px-3"
-                      onClick={() => router.push(`/?chart=${f.value}`)}
+                      onClick={() => router.push(`${pathname}?chart=${f.value}`)}
                     >
                       {f.label}
                     </Button>
@@ -197,7 +198,10 @@ export function DashboardPage({
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.brand}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.brand}
+                        {product.style && ` · ${product.style}`}
+                      </p>
                     </div>
                     <Badge
                       variant="outline"

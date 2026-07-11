@@ -2,7 +2,7 @@
 
 import { prisma } from "./prisma";
 import { revalidatePath } from "next/cache";
-import { MovementType, ProductStatus, ProductType, PaymentMethod, Prisma, BusinessStatus } from "@prisma/client";
+import { MovementType, ProductStatus, ProductType, PromotionType, PaymentMethod, Prisma, BusinessStatus } from "@prisma/client";
 import { serializeData } from "./serialization";
 import { getCurrentUser } from "./session";
 
@@ -96,6 +96,8 @@ function promotionSelectForRole(role?: string) {
     name: true,
     description: true,
     salePrice: true,
+    type: true,
+    requiredItemCount: true,
     status: true,
     businessId: true,
     createdAt: true,
@@ -123,6 +125,7 @@ function saleIncludeForRole(role?: string) {
     },
     salePromotions: {
       include: {
+        promotion: { select: { type: true, requiredItemCount: true } },
         items: {
           include: {
             product: { select: productSelectForRole(role) },
@@ -284,7 +287,7 @@ export async function getProducts(search?: string, status?: ProductStatus) {
     where,
     select: productSelectForRole(user.role),
     orderBy: { createdAt: "desc" },
-    take: 500,
+    take: 1000,
   });
   return serializeData(products);
 }
@@ -318,8 +321,7 @@ export async function createProduct(data: {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
-  // currentStock nunca se actualiza desde la edición de producto; se gestiona en Inventario
-  const { categoryName, currentStock: _, ...productData } = data;
+  const { categoryName, ...productData } = data;
 
   const product = await prisma.$transaction(async (tx) => {
     let categoryId = productData.categoryId;
@@ -512,12 +514,30 @@ export async function createPromotion(data: {
   name: string;
   description?: string;
   salePrice: number;
+  type: PromotionType;
+  requiredItemCount?: number | null;
   items: { productId: string; quantity: number }[];
 }) {
   const user = await verifyBusinessAccess(await getCurrentUser());
   if (user.role !== "OWNER") throw new Error("No tenés permisos para realizar esta acción");
 
+  const isDynamic = data.type === PromotionType.DYNAMIC;
+
   if (!data.items.length) throw new Error("La promo debe tener al menos un producto");
+
+  const uniqueProductIds = new Set(data.items.map((i) => i.productId));
+  if (uniqueProductIds.size !== data.items.length) {
+    throw new Error("No podés incluir el mismo producto más de una vez en una promo");
+  }
+
+  if (isDynamic) {
+    if (!data.requiredItemCount || data.requiredItemCount < 2) {
+      throw new Error("Una promo dinámica debe requerir al menos 2 productos");
+    }
+    if (data.requiredItemCount > data.items.length) {
+      throw new Error("La cantidad de productos a elegir no puede ser mayor a la cantidad de elegibles");
+    }
+  }
 
   const productIds = data.items.map((i) => i.productId);
   const products = await prisma.product.findMany({
@@ -530,11 +550,13 @@ export async function createPromotion(data: {
       name: data.name.trim(),
       description: data.description?.trim(),
       salePrice: data.salePrice,
+      type: data.type,
+      requiredItemCount: isDynamic ? data.requiredItemCount : null,
       businessId: user.businessId,
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
-          quantity: item.quantity,
+          quantity: isDynamic ? 1 : item.quantity,
         })),
       },
     },
@@ -552,6 +574,8 @@ export async function updatePromotion(
     description?: string;
     salePrice?: number;
     status?: ProductStatus;
+    type?: PromotionType;
+    requiredItemCount?: number | null;
     items?: { productId: string; quantity: number }[];
   }
 ) {
@@ -563,11 +587,29 @@ export async function updatePromotion(
   });
   if (!existing) throw new Error("Promoción no encontrada");
 
+  const resolvedType = data.type ?? existing.type;
+  const isDynamic = resolvedType === PromotionType.DYNAMIC;
+
   if (data.items && data.items.length === 0) {
     throw new Error("La promo debe tener al menos un producto");
   }
 
   if (data.items) {
+    const uniqueProductIds = new Set(data.items.map((i) => i.productId));
+    if (uniqueProductIds.size !== data.items.length) {
+      throw new Error("No podés incluir el mismo producto más de una vez en una promo");
+    }
+
+    if (isDynamic) {
+      const required = data.requiredItemCount ?? existing.requiredItemCount;
+      if (!required || required < 2) {
+        throw new Error("Una promo dinámica debe requerir al menos 2 productos");
+      }
+      if (required > data.items.length) {
+        throw new Error("La cantidad de productos a elegir no puede ser mayor a la cantidad de elegibles");
+      }
+    }
+
     const productIds = data.items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds }, businessId: user.businessId },
@@ -589,11 +631,13 @@ export async function updatePromotion(
         description: data.description?.trim(),
         salePrice: data.salePrice,
         status: data.status,
+        type: data.type,
+        requiredItemCount: isDynamic ? (data.requiredItemCount ?? existing.requiredItemCount) : null,
         items: data.items
           ? {
               create: data.items.map((item) => ({
                 productId: item.productId,
-                quantity: item.quantity,
+                quantity: isDynamic ? 1 : item.quantity,
               })),
             }
           : undefined,
@@ -876,7 +920,11 @@ export async function getSaleById(id: string): Promise<SaleWithDetails | null> {
 
 export async function createSale(data: {
   items: { productId: string; quantity: number }[];
-  promotions?: { promotionId: string; quantity: number }[];
+  promotions?: {
+    promotionId: string;
+    quantity: number;
+    items?: { productId: string; quantity: number }[];
+  }[];
   customerId?: string;
   isPaid?: boolean;
   paymentMethod?: string;
@@ -897,6 +945,13 @@ export async function createSale(data: {
   for (const promo of data.promotions || []) {
     if (!promo.promotionId || promo.quantity <= 0) {
       throw new Error("Cantidad de promo inválida");
+    }
+    if (promo.items) {
+      for (const item of promo.items) {
+        if (!item.productId || item.quantity <= 0) {
+          throw new Error("Cantidad inválida en promo");
+        }
+      }
     }
   }
 
@@ -927,14 +982,51 @@ export async function createSale(data: {
 
   const promotionMap = new Map(promotions.map((p) => [p.id, p]));
 
+  // Validate dynamic promotions and resolve items
+  const promotionItemsBySale = new Map<
+    string,
+    { productId: string; quantity: number }[]
+  >();
+
+  for (const promo of data.promotions || []) {
+    const promotion = promotionMap.get(promo.promotionId)!;
+    const eligibleIds = new Set(promotion.items.map((i) => i.productId));
+
+    if (promotion.type === PromotionType.DYNAMIC) {
+      if (!promo.items || promo.items.length === 0) {
+        throw new Error(`La promo "${promotion.name}" requiere que elijas los productos`);
+      }
+      const uniqueSelected = new Set(promo.items.map((i) => i.productId));
+      if (uniqueSelected.size !== promo.items.length) {
+        throw new Error(`La promo "${promotion.name}" no permite elegir el mismo producto dos veces`);
+      }
+      if (promo.items.length !== promotion.requiredItemCount) {
+        throw new Error(
+          `La promo "${promotion.name}" requiere exactamente ${promotion.requiredItemCount} productos`
+        );
+      }
+      for (const item of promo.items) {
+        if (!eligibleIds.has(item.productId)) {
+          throw new Error(`Un producto seleccionado no pertenece a la promo "${promotion.name}"`);
+        }
+      }
+      promotionItemsBySale.set(promo.promotionId, promo.items);
+    } else {
+      promotionItemsBySale.set(
+        promo.promotionId,
+        promotion.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+      );
+    }
+  }
+
   // Aggregate stock needed per product (items + promotions)
   const stockNeeded = new Map<string, number>();
   for (const item of data.items) {
     stockNeeded.set(item.productId, (stockNeeded.get(item.productId) || 0) + item.quantity);
   }
   for (const promo of data.promotions || []) {
-    const promotion = promotionMap.get(promo.promotionId)!;
-    for (const promoItem of promotion.items) {
+    const resolvedItems = promotionItemsBySale.get(promo.promotionId)!;
+    for (const promoItem of resolvedItems) {
       stockNeeded.set(
         promoItem.productId,
         (stockNeeded.get(promoItem.productId) || 0) + promoItem.quantity * promo.quantity
@@ -1013,7 +1105,8 @@ export async function createSale(data: {
         },
       });
 
-      for (const promoItem of promotion.items) {
+      const resolvedItems = promotionItemsBySale.get(promo.promotionId)!;
+      for (const promoItem of resolvedItems) {
         await tx.salePromotionItem.create({
           data: {
             salePromotionId: salePromotion.id,
@@ -1074,7 +1167,11 @@ export async function updateSale(
   id: string,
   data: {
     items: { productId: string; quantity: number }[];
-    promotions?: { promotionId: string; quantity: number }[];
+    promotions?: {
+      promotionId: string;
+      quantity: number;
+      items?: { productId: string; quantity: number }[];
+    }[];
     customerId?: string;
     isPaid?: boolean;
     paymentMethod?: string;
@@ -1113,6 +1210,13 @@ export async function updateSale(
     if (!promo.promotionId || promo.quantity <= 0) {
       throw new Error("Cantidad de promo inválida");
     }
+    if (promo.items) {
+      for (const item of promo.items) {
+        if (!item.productId || item.quantity <= 0) {
+          throw new Error("Cantidad inválida en promo");
+        }
+      }
+    }
   }
 
   const promotions = data.promotions?.length
@@ -1131,6 +1235,43 @@ export async function updateSale(
   }
 
   const promotionMap = new Map(promotions.map((p) => [p.id, p]));
+
+  // Validate dynamic promotions and resolve items
+  const promotionItemsBySale = new Map<
+    string,
+    { productId: string; quantity: number }[]
+  >();
+
+  for (const promo of data.promotions || []) {
+    const promotion = promotionMap.get(promo.promotionId)!;
+    const eligibleIds = new Set(promotion.items.map((i) => i.productId));
+
+    if (promotion.type === PromotionType.DYNAMIC) {
+      if (!promo.items || promo.items.length === 0) {
+        throw new Error(`La promo "${promotion.name}" requiere que elijas los productos`);
+      }
+      const uniqueSelected = new Set(promo.items.map((i) => i.productId));
+      if (uniqueSelected.size !== promo.items.length) {
+        throw new Error(`La promo "${promotion.name}" no permite elegir el mismo producto dos veces`);
+      }
+      if (promo.items.length !== promotion.requiredItemCount) {
+        throw new Error(
+          `La promo "${promotion.name}" requiere exactamente ${promotion.requiredItemCount} productos`
+        );
+      }
+      for (const item of promo.items) {
+        if (!eligibleIds.has(item.productId)) {
+          throw new Error(`Un producto seleccionado no pertenece a la promo "${promotion.name}"`);
+        }
+      }
+      promotionItemsBySale.set(promo.promotionId, promo.items);
+    } else {
+      promotionItemsBySale.set(
+        promo.promotionId,
+        promotion.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+      );
+    }
+  }
 
   // Aggregate original stock per product
   const originalQtyByProduct = new Map<string, number>();
@@ -1158,8 +1299,8 @@ export async function updateSale(
     );
   }
   for (const promo of data.promotions || []) {
-    const promotion = promotionMap.get(promo.promotionId)!;
-    for (const promoItem of promotion.items) {
+    const resolvedItems = promotionItemsBySale.get(promo.promotionId)!;
+    for (const promoItem of resolvedItems) {
       newQtyByProduct.set(
         promoItem.productId,
         (newQtyByProduct.get(promoItem.productId) || 0) + promoItem.quantity * promo.quantity
@@ -1260,7 +1401,8 @@ export async function updateSale(
         },
       });
 
-      for (const promoItem of promotion.items) {
+      const resolvedItems = promotionItemsBySale.get(promo.promotionId)!;
+      for (const promoItem of resolvedItems) {
         await tx.salePromotionItem.create({
           data: {
             salePromotionId: salePromotion.id,
@@ -1753,42 +1895,82 @@ export async function getDashboardData(chartDays: number = 7) {
     return Math.round(((current - previous) / previous) * 100);
   };
 
-  // Sales trend for chart (dynamic days)
-  const trendDates = Array.from({ length: chartDays }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (chartDays - 1 - i));
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  });
+  // Sales trend for chart (daily for 7/30 days, monthly for 365 days)
+  let salesTrend: { date: string; sales: number; revenue: number; expenses: number; profit: number }[];
 
-  const salesTrend = await Promise.all(
-    trendDates.map(async (date) => {
-      const nextDay = new Date(date);
-      nextDay.setDate(date.getDate() + 1);
-      const [daySales, dayExpenses] = await Promise.all([
-        prisma.sale.findMany({
-          where: {
-            businessId: user.businessId,
-            createdAt: { gte: date, lt: nextDay },
-          },
-        }),
-        prisma.expense.findMany({
-          where: {
-            businessId: user.businessId,
-            date: { gte: date, lt: nextDay },
-          },
-        }),
-      ]);
-      const revenue = daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
-      const expenses = dayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-      return {
-        date: date.toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
-        sales: daySales.length,
-        revenue,
-        expenses,
-        profit: revenue - expenses,
-      };
-    })
-  );
+  if (chartDays === 365) {
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (11 - i));
+      d.setDate(1);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    });
+
+    salesTrend = await Promise.all(
+      months.map(async (monthStart) => {
+        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+        const [monthSales, monthExpenses] = await Promise.all([
+          prisma.sale.findMany({
+            where: {
+              businessId: user.businessId,
+              createdAt: { gte: monthStart, lt: monthEnd },
+            },
+          }),
+          prisma.expense.findMany({
+            where: {
+              businessId: user.businessId,
+              date: { gte: monthStart, lt: monthEnd },
+            },
+          }),
+        ]);
+        const revenue = monthSales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+        const expenses = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        return {
+          date: monthStart.toLocaleDateString("es-AR", { month: "short", year: "2-digit" }),
+          sales: monthSales.length,
+          revenue,
+          expenses,
+          profit: revenue - expenses,
+        };
+      })
+    );
+  } else {
+    const trendDates = Array.from({ length: chartDays }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (chartDays - 1 - i));
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    });
+
+    salesTrend = await Promise.all(
+      trendDates.map(async (date) => {
+        const nextDay = new Date(date);
+        nextDay.setDate(date.getDate() + 1);
+        const [daySales, dayExpenses] = await Promise.all([
+          prisma.sale.findMany({
+            where: {
+              businessId: user.businessId,
+              createdAt: { gte: date, lt: nextDay },
+            },
+          }),
+          prisma.expense.findMany({
+            where: {
+              businessId: user.businessId,
+              date: { gte: date, lt: nextDay },
+            },
+          }),
+        ]);
+        const revenue = daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0);
+        const expenses = dayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        return {
+          date: date.toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
+          sales: daySales.length,
+          revenue,
+          expenses,
+          profit: revenue - expenses,
+        };
+      })
+    );
+  }
 
   return serializeData({
     salesToday: {

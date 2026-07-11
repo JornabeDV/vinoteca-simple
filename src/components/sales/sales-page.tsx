@@ -57,6 +57,17 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
     }
   };
 
+  const getSaleProductCount = (sale: any) => {
+    const directItems = sale.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0;
+    const promoItems =
+      sale.salePromotions?.reduce(
+        (sum: number, sp: any) =>
+          sum + (sp.items?.reduce((s: number, i: any) => s + (i.quantity || 0), 0) || 0),
+        0
+      ) || 0;
+    return directItems + promoItems;
+  };
+
   const handleExport = () => {
     const headers = ["numero", "fecha", "usuario", "cliente", "forma de pago", "productos", "descuento", "total"];
     const rows = sales.map((s) => [
@@ -65,7 +76,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
       escapeCsvField(s.user?.name || s.user?.email),
       escapeCsvField(s.customer?.name),
       escapeCsvField(getPaymentMethodLabel(s.paymentMethod)),
-      escapeCsvField(s.items?.length || 0),
+      escapeCsvField(getSaleProductCount(s)),
       escapeCsvField(`${s.discountPercentage || 0}%`),
       escapeCsvField(s.totalAmount),
     ]);
@@ -122,7 +133,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
             ) * dir
           );
         case "products":
-          return ((a.items?.length || 0) - (b.items?.length || 0)) * dir;
+          return (getSaleProductCount(a) - getSaleProductCount(b)) * dir;
         case "total":
           return (Number(a.totalAmount) - Number(b.totalAmount)) * dir;
         default:
@@ -280,7 +291,7 @@ export function SalesPage({ sales, userRole }: { sales: any[]; userRole?: string
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
-                          {sale.items?.length || 0} productos
+                          {getSaleProductCount(sale)} productos
                         </Badge>
                       </TableCell>
                       <TableCell className="font-semibold">

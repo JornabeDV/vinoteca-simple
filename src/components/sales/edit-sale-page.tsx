@@ -41,6 +41,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { updateSale } from "@/lib/actions";
+import { PromotionPickerDialog } from "./promotion-picker-dialog";
 import { cn, formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -54,6 +55,8 @@ interface CartItem {
   quantity: number;
   availableStock: number;
   image?: string;
+  promotionType?: "FIXED" | "DYNAMIC";
+  requiredItemCount?: number;
   promotionItems?: { productId: string; quantity: number }[];
 }
 
@@ -124,11 +127,15 @@ export function EditSalePage({
     }));
 
     const promoItems: CartItem[] = (sale.salePromotions || []).map((sp: any) => {
+      const promotion = promotions.find((p) => p.id === sp.promotionId);
+      const isDynamic = promotion?.type === "DYNAMIC";
+
       const maxQty = sp.items.reduce((min: number, item: any) => {
         const product = adjustedProducts.find((p) => p.id === item.productId);
         if (!product) return 0;
         return Math.min(min, Math.floor(product.adjustedStock / item.quantity));
       }, Infinity);
+
       return {
         id: sp.promotionId,
         type: "promotion",
@@ -137,6 +144,8 @@ export function EditSalePage({
         quantity: sp.quantity,
         availableStock: maxQty === Infinity ? 0 : maxQty,
         image: sp.items?.[0]?.product?.image,
+        promotionType: promotion?.type,
+        requiredItemCount: promotion?.requiredItemCount,
         promotionItems: sp.items.map((i: any) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -281,6 +290,7 @@ export function EditSalePage({
           .map((item) => ({
             promotionId: item.id,
             quantity: item.quantity,
+            items: item.promotionItems,
           })),
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
@@ -342,7 +352,13 @@ export function EditSalePage({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.type === "promotion" ? "Combo" : item.brand}
+                      {item.type === "promotion"
+                        ? item.promotionType === "DYNAMIC"
+                          ? item.promotionItems
+                              ?.map((i) => adjustedProducts.find((p) => p.id === i.productId)?.name || "Producto")
+                              .join(" + ")
+                          : "Combo"
+                        : item.brand}
                     </p>
                   </div>
                 </div>

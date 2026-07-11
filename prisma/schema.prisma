@@ -22,6 +22,11 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum PromotionType {
+  FIXED
+  DYNAMIC
+}
+
 enum ProductType {
   WINE
   BEER
@@ -411,18 +416,20 @@ model SaleItem {
 }
 
 model Promotion {
-  id            String        @id @default(uuid())
-  name          String
-  description   String?
-  salePrice     Decimal       @map("sale_price") @db.Decimal(10, 2)
-  status        ProductStatus @default(ACTIVE)
-  businessId    String        @map("business_id")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id                String          @id @default(uuid())
+  name              String
+  description       String?
+  salePrice         Decimal         @map("sale_price") @db.Decimal(10, 2)
+  type              PromotionType   @default(FIXED)
+  requiredItemCount Int?            @map("required_item_count")
+  status            ProductStatus   @default(ACTIVE)
+  businessId        String          @map("business_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
 
-  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  items         PromotionItem[]
-  sales         SalePromotion[]
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items           PromotionItem[]
+  sales           SalePromotion[]
 
   @@index([status])
   @@index([businessId])
