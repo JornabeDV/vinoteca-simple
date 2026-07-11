@@ -180,12 +180,19 @@ export function PromosPage({ promotions, userRole }: { promotions: any[]; userRo
                       >
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium">{promo.name}</span>
-                            {promo.description && (
-                              <span className="text-xs text-muted-foreground line-clamp-1">
-                                {promo.description}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{promo.name}</span>
+                              {promo.type === "DYNAMIC" && (
+                                <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                                  Dinámica
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground line-clamp-1">
+                              {promo.type === "DYNAMIC"
+                                ? `Elegí ${promo.requiredItemCount} de ${promo.items?.length || 0} productos`
+                                : promo.description || `${promo.items?.length || 0} productos`}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">

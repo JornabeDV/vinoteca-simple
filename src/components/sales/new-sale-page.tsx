@@ -57,6 +57,7 @@ import { createSale } from "@/lib/actions";
 import { cn, formatPrice, getPaymentMethodLabel, paymentMethodLabels } from "@/lib/utils";
 import { toast } from "sonner";
 import { QuickProductDialog } from "./quick-product-dialog";
+import { PromotionPickerDialog } from "./promotion-picker-dialog";
 
 interface CartItem {
   id: string;
@@ -68,6 +69,8 @@ interface CartItem {
   quantity: number;
   availableStock: number;
   image?: string;
+  promotionType?: "FIXED" | "DYNAMIC";
+  requiredItemCount?: number;
   promotionItems?: { productId: string; quantity: number }[];
 }
 
@@ -115,7 +118,27 @@ export function NewSalePage({
     return promotions
       .filter((p) => p.status === "ACTIVE")
       .map((promo) => {
-        const maxQty = promo.items.reduce((min: number, item: any) => {
+        const isDynamic = promo.type === "DYNAMIC";
+        const items = promo.items || [];
+
+        if (isDynamic) {
+          const eligibleWithStock = items
+            .map((item: any) => localProducts.find((p) => p.id === item.productId))
+            .filter((product: any) => product && product.currentStock > 0);
+
+          const hasEnoughOptions = eligibleWithStock.length >= (promo.requiredItemCount || 0);
+          if (!hasEnoughOptions) {
+            return { ...promo, availableStock: 0 };
+          }
+
+          const maxQty = eligibleWithStock.reduce((min: number, product: any) => {
+            return Math.min(min, product.currentStock);
+          }, Infinity);
+
+          return { ...promo, availableStock: maxQty === Infinity ? 0 : maxQty };
+        }
+
+        const maxQty = items.reduce((min: number, item: any) => {
           const product = localProducts.find((p) => p.id === item.productId);
           if (!product) return 0;
           const possible = Math.floor(product.currentStock / item.quantity);
@@ -200,7 +223,7 @@ export function NewSalePage({
     });
   }
 
-  function addPromotionToCart(promotion: any) {
+  function addPromotionToCart(promotion: any, selectedItems?: { productId: string; quantity: number }[]) {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === promotion.id && item.type === "promotion");
       if (existing) {
@@ -214,6 +237,15 @@ export function NewSalePage({
             : item
         );
       }
+
+      const isDynamic = promotion.type === "DYNAMIC";
+      const promotionItems = isDynamic
+        ? selectedItems || []
+        : promotion.items.map((i: any) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          }));
+
       return [
         ...prev,
         {
@@ -223,11 +255,12 @@ export function NewSalePage({
           salePrice: Number(promotion.salePrice),
           quantity: 1,
           availableStock: promotion.availableStock,
-          image: promotion.items?.[0]?.product?.image,
-          promotionItems: promotion.items.map((i: any) => ({
-            productId: i.productId,
-            quantity: i.quantity,
-          })),
+          image: isDynamic
+            ? promotionItems[0]?.product?.image
+            : promotion.items?.[0]?.product?.image,
+          promotionType: promotion.type,
+          requiredItemCount: promotion.requiredItemCount,
+          promotionItems,
         },
       ];
     });
@@ -342,6 +375,7 @@ export function NewSalePage({
           .map((item) => ({
             promotionId: item.id,
             quantity: item.quantity,
+            items: item.promotionItems,
           })),
         customerId: isAccountSale ? selectedCustomerId : undefined,
         isPaid: !isAccountSale,
@@ -405,7 +439,13 @@ export function NewSalePage({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.type === "promotion" ? "Combo" : item.brand}
+                      {item.type === "promotion"
+                        ? item.promotionType === "DYNAMIC"
+                          ? item.promotionItems
+                              ?.map((i) => localProducts.find((p) => p.id === i.productId)?.name || "Producto")
+                              .join(" + ")
+                          : "Combo"
+                        : item.brand}
                     </p>
                   </div>
                 </div>
@@ -854,12 +894,10 @@ export function NewSalePage({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 h-full content-start">
               {filteredPromotions.map((promotion) => {
                 const inCart = cart.find((c) => c.id === promotion.id && c.type === "promotion");
-                return (
-                  <button
-                    key={promotion.id}
-                    onClick={() => addPromotionToCart(promotion)}
-                    className="group relative flex flex-row sm:flex-col items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]"
-                  >
+                const isDynamic = promotion.type === "DYNAMIC";
+
+                const cardContent = (
+                  <div className="group relative flex flex-row sm:flex-col items-stretch gap-3 sm:gap-0 rounded-xl border border-border/50 bg-card p-3 text-left transition-all hover:shadow-md hover:border-[#7b1f3a]/30 active:scale-[0.98]">
                     {/* Icon */}
                     <div className="flex h-10 w-10 shrink-0 sm:h-28 sm:w-full items-center justify-center rounded-lg sm:rounded-xl bg-muted sm:mb-3 overflow-hidden">
                       {promotion.items?.[0]?.product?.image ? (
@@ -889,17 +927,32 @@ export function NewSalePage({
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                        {promotion.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
+                        {isDynamic
+                          ? `Elegí ${promotion.requiredItemCount} productos de ${promotion.items?.length || 0} opciones`
+                          : promotion.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
                       </p>
                       <div className="flex items-center justify-between mt-auto pt-2 sm:border-t border-border/30">
                         <span className="text-sm sm:text-base font-bold text-[#7b1f3a]">
                           {formatPrice(Number(promotion.salePrice))}
                         </span>
                         <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">
-                          {promotion.availableStock} disp.
+                          {isDynamic ? "Dinámica" : `${promotion.availableStock} disp.`}
                         </span>
                       </div>
                     </div>
+                  </div>
+                );
+
+                return isDynamic ? (
+                  <PromotionPickerDialog
+                    key={promotion.id}
+                    promotion={promotion}
+                    trigger={cardContent}
+                    onConfirm={(items) => addPromotionToCart(promotion, items)}
+                  />
+                ) : (
+                  <button key={promotion.id} onClick={() => addPromotionToCart(promotion)}>
+                    {cardContent}
                   </button>
                 );
               })}

@@ -119,27 +119,37 @@ export default async function SaleDetail({
                   <Tag className="h-4 w-4 text-[#7b1f3a]" />
                   <h4 className="font-heading font-semibold">Promociones</h4>
                 </div>
-                {sale.salePromotions.map((sp: any) => (
-                  <div
-                    key={sp.id}
-                    className="flex items-center justify-between rounded-lg border border-border/50 p-4"
-                  >
-                    <div>
-                      <p className="font-medium">{sp.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {sp.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
-                      </p>
+                {sale.salePromotions.map((sp: any) => {
+                  const isDynamic = sp.promotion?.type === "DYNAMIC";
+                  return (
+                    <div
+                      key={sp.id}
+                      className="flex items-center justify-between rounded-lg border border-border/50 p-4"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{sp.name}</p>
+                          {isDynamic && (
+                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                              Dinámica
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {sp.items?.map((i: any) => `${i.quantity} × ${i.product?.name}`).join(", ")}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0 ml-4">
+                        <p className="text-sm">
+                          {sp.quantity} x {formatPrice(Number(sp.salePrice))}
+                        </p>
+                        <p className="font-semibold text-[#7b1f3a]">
+                          {formatPrice(Number(sp.totalPrice))}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm">
-                        {sp.quantity} x {formatPrice(Number(sp.salePrice))}
-                      </p>
-                      <p className="font-semibold text-[#7b1f3a]">
-                        {formatPrice(Number(sp.totalPrice))}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </>
             )}
 
