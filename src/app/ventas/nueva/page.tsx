@@ -5,12 +5,14 @@ import { getProducts, getCustomers, getPromotions } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/session";
 
 export default async function NewSale() {
-  const [products, customers, promotions, user] = await Promise.all([
+  const [products, promotions, user] = await Promise.all([
     getProducts(),
-    getCustomers(),
     getPromotions(),
     getCurrentUser(),
   ]);
+
+  const isOwner = user?.role === "OWNER";
+  const customers = isOwner ? await getCustomers() : [];
 
   return (
     <AppShell>
