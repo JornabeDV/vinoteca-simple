@@ -122,17 +122,21 @@ export function NewSalePage({
         const items = promo.items || [];
 
         if (isDynamic) {
+          const required = promo.requiredItemCount || 0;
+
           const eligibleWithStock = items
             .map((item: any) => localProducts.find((p) => p.id === item.productId))
-            .filter((product: any) => product && product.currentStock > 0);
+            .filter((product: any, index: number, self: any[]) => {
+              return product && product.currentStock > 0 && self.indexOf(product) === index;
+            });
 
-          const hasEnoughOptions = eligibleWithStock.length >= (promo.requiredItemCount || 0);
+          const hasEnoughOptions = eligibleWithStock.length >= required;
           if (!hasEnoughOptions) {
             return { ...promo, availableStock: 0 };
           }
 
           const maxQty = eligibleWithStock.reduce((min: number, product: any) => {
-            return Math.min(min, product.currentStock);
+            return Math.min(min, Math.floor(product.currentStock / required));
           }, Infinity);
 
           return { ...promo, availableStock: maxQty === Infinity ? 0 : maxQty };
@@ -853,9 +857,11 @@ export function NewSalePage({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {product.brand} {product.style ? `· ${product.style}` : ""}
-                        </p>
+                        {product.style && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {product.style}
+                          </p>
+                        )}
                         <div className="flex items-center justify-between mt-auto pt-2 sm:border-t border-border/30">
                           <span className="text-sm sm:text-base font-bold text-[#7b1f3a]">
                             {formatPrice(Number(product.salePrice))}

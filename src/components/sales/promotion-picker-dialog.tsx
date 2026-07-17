@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Wine, Check, Search, X } from "lucide-react";
+import { Wine, Search, X, Minus, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatPrice } from "@/lib/utils";
@@ -25,7 +24,7 @@ interface PromotionPickerDialogProps {
 
 export function PromotionPickerDialog({ promotion, trigger, onConfirm }: PromotionPickerDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
@@ -39,40 +38,73 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const filteredItems = useMemo(() => {
-    if (!search.trim()) return eligibleItems;
-    const q = search.toLowerCase();
-    return eligibleItems.filter((item: any) => {
+  const products = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const item of eligibleItems) {
       const product = item.product;
+      if (product) map.set(product.id, product);
+    }
+    return Array.from(map.values());
+  }, [eligibleItems]);
+
+  // Each eligible product can be selected up to the required count for this promo
+  const maxQuantityByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const product of products) {
+      map.set(product.id, Math.min(required, product.currentStock || 0));
+    }
+    return map;
+  }, [products, required]);
+
+  const filteredProducts = useMemo(() => {
+    if (!search.trim()) return products;
+    const q = search.toLowerCase();
+    return products.filter((product: any) => {
       return [product?.name, product?.brand, product?.style]
         .filter(Boolean)
         .some((field) => field.toLowerCase().includes(q));
     });
-  }, [eligibleItems, search]);
+  }, [products, search]);
 
-  function toggleProduct(productId: string) {
-    setSelectedIds((prev) => {
-      if (prev.includes(productId)) {
-        return prev.filter((id) => id !== productId);
-      }
-      if (prev.length >= required) {
-        return prev;
-      }
-      return [...prev, productId];
+  const totalSelected = useMemo(() => {
+    return Object.values(quantities).reduce((sum, q) => sum + q, 0);
+  }, [quantities]);
+
+  function updateQuantity(productId: string, delta: number) {
+    const product = products.find((p: any) => p.id === productId);
+    if (!product) return;
+
+    const maxQuantity = Math.min(
+      maxQuantityByProduct.get(productId) || 1,
+      product.currentStock || 0
+    );
+
+    setQuantities((prev) => {
+      const currentTotal = Object.values(prev).reduce((sum, q) => sum + q, 0);
+      const current = prev[productId] || 0;
+      const next = current + delta;
+      const remaining = required - currentTotal + current;
+      const max = Math.min(maxQuantity, remaining);
+      if (next < 0) return prev;
+      if (next > max) return prev;
+      return { ...prev, [productId]: next };
     });
   }
 
   function handleConfirm() {
-    if (selectedIds.length !== required) return;
-    onConfirm(selectedIds.map((id) => ({ productId: id, quantity: 1 })));
-    setSelectedIds([]);
+    if (totalSelected !== required) return;
+    const selectedItems = Object.entries(quantities)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([productId, quantity]) => ({ productId, quantity }));
+    onConfirm(selectedItems);
+    setQuantities({});
     setSearch("");
     setOpen(false);
   }
 
   function handleOpenChange(newOpen: boolean) {
     if (newOpen) {
-      setSelectedIds([]);
+      setQuantities({});
       setSearch("");
     }
     setOpen(newOpen);
@@ -93,35 +125,30 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2">
-        {filteredItems.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             No se encontraron productos.
           </p>
         ) : (
           <div className="space-y-1">
-            {filteredItems.map((item: any) => {
-              const product = item.product;
-              const checked = selectedIds.includes(item.productId);
+            {filteredProducts.map((product: any) => {
+              const quantity = quantities[product.id] || 0;
+              const maxQuantity = Math.min(
+                maxQuantityByProduct.get(product.id) || 1,
+                product.currentStock || 0
+              );
               const outOfStock = !product || product.currentStock <= 0;
+              const remaining = required - totalSelected;
+              const canIncrease = !outOfStock && quantity < maxQuantity && remaining > 0;
 
               return (
                 <div
-                  key={item.productId}
-                  onClick={() => !outOfStock && toggleProduct(item.productId)}
+                  key={product.id}
                   className={cn(
-                    "flex items-start gap-3 rounded-md px-2 py-2.5 transition-colors",
-                    outOfStock
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-muted cursor-pointer"
+                    "flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors",
+                    outOfStock ? "opacity-50" : "hover:bg-muted"
                   )}
                 >
-                  <div className="pt-0.5">
-                    <Checkbox
-                      checked={checked}
-                      disabled={outOfStock}
-                      onCheckedChange={() => toggleProduct(item.productId)}
-                    />
-                  </div>
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                     {product?.image ? (
                       <img
@@ -143,6 +170,32 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
                         ? ` · ${product.currentStock} disp.`
                         : " · Sin stock"}
                     </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      className="h-7 w-7"
+                      disabled={quantity <= 0}
+                      onClick={() => updateQuantity(product.id, -1)}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-5 text-center text-sm font-medium tabular-nums">
+                      {quantity}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      className="h-7 w-7"
+                      disabled={!canIncrease}
+                      onClick={() => updateQuantity(product.id, 1)}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
               );
@@ -195,8 +248,8 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
               <span className="text-sm font-medium text-[#7b1f3a]">
                 {formatPrice(Number(promotion.salePrice))}
               </span>
-              <Badge variant={selectedIds.length === required ? "default" : "secondary"}>
-                {selectedIds.length} de {required}
+              <Badge variant={totalSelected === required ? "default" : "secondary"}>
+                {totalSelected} de {required}
               </Badge>
             </div>
           )}
@@ -226,7 +279,7 @@ export function PromotionPickerDialog({ promotion, trigger, onConfirm }: Promoti
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={selectedIds.length !== required}
+            disabled={totalSelected !== required}
             className="bg-[#7b1f3a] hover:bg-[#5a1530] text-white max-sm:mx-4 sm:mr-4 mb-4 max-sm:order-1"
           >
             Confirmar

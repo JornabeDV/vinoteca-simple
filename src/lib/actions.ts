@@ -996,18 +996,28 @@ export async function createSale(data: {
       if (!promo.items || promo.items.length === 0) {
         throw new Error(`La promo "${promotion.name}" requiere que elijas los productos`);
       }
-      const uniqueSelected = new Set(promo.items.map((i) => i.productId));
-      if (uniqueSelected.size !== promo.items.length) {
-        throw new Error(`La promo "${promotion.name}" no permite elegir el mismo producto dos veces`);
-      }
-      if (promo.items.length !== promotion.requiredItemCount) {
+
+      const selectedQuantity = promo.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+      if (selectedQuantity !== promotion.requiredItemCount) {
         throw new Error(
           `La promo "${promotion.name}" requiere exactamente ${promotion.requiredItemCount} productos`
         );
       }
+
+      const eligibleSlotsByProduct = new Map<string, number>();
+      for (const item of promotion.items) {
+        eligibleSlotsByProduct.set(item.productId, promotion.requiredItemCount || 0);
+      }
+
       for (const item of promo.items) {
         if (!eligibleIds.has(item.productId)) {
           throw new Error(`Un producto seleccionado no pertenece a la promo "${promotion.name}"`);
+        }
+        const maxSlots = eligibleSlotsByProduct.get(item.productId) || 0;
+        if (item.quantity > maxSlots) {
+          throw new Error(
+            `La promo "${promotion.name}" no permite seleccionar más de ${maxSlots} unidades de ese producto`
+          );
         }
       }
       promotionItemsBySale.set(promo.promotionId, promo.items);
@@ -1250,18 +1260,28 @@ export async function updateSale(
       if (!promo.items || promo.items.length === 0) {
         throw new Error(`La promo "${promotion.name}" requiere que elijas los productos`);
       }
-      const uniqueSelected = new Set(promo.items.map((i) => i.productId));
-      if (uniqueSelected.size !== promo.items.length) {
-        throw new Error(`La promo "${promotion.name}" no permite elegir el mismo producto dos veces`);
-      }
-      if (promo.items.length !== promotion.requiredItemCount) {
+
+      const selectedQuantity = promo.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+      if (selectedQuantity !== promotion.requiredItemCount) {
         throw new Error(
           `La promo "${promotion.name}" requiere exactamente ${promotion.requiredItemCount} productos`
         );
       }
+
+      const eligibleSlotsByProduct = new Map<string, number>();
+      for (const item of promotion.items) {
+        eligibleSlotsByProduct.set(item.productId, promotion.requiredItemCount || 0);
+      }
+
       for (const item of promo.items) {
         if (!eligibleIds.has(item.productId)) {
           throw new Error(`Un producto seleccionado no pertenece a la promo "${promotion.name}"`);
+        }
+        const maxSlots = eligibleSlotsByProduct.get(item.productId) || 0;
+        if (item.quantity > maxSlots) {
+          throw new Error(
+            `La promo "${promotion.name}" no permite seleccionar más de ${maxSlots} unidades de ese producto`
+          );
         }
       }
       promotionItemsBySale.set(promo.promotionId, promo.items);

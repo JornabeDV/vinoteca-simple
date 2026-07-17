@@ -652,9 +652,11 @@ export function EditSalePage({
                       <p className="text-sm font-medium leading-tight line-clamp-2">
                         {product.name}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {product.brand} {product.style ? `· ${product.style}` : ""}
-                      </p>
+                      {product.style && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {product.style}
+                        </p>
+                      )}
                     </div>
 
                     {/* Price & Stock */}
