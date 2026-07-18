@@ -358,7 +358,7 @@ export function EditSalePage({
                               ?.map((i) => adjustedProducts.find((p) => p.id === i.productId)?.name || "Producto")
                               .join(" + ")
                           : "Combo"
-                        : item.brand}
+                        : item.style}
                     </p>
                   </div>
                 </div>

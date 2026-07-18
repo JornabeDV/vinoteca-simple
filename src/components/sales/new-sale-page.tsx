@@ -450,7 +450,7 @@ export function NewSalePage({
                               ?.map((i) => localProducts.find((p) => p.id === i.productId)?.name || "Producto")
                               .join(" + ")
                           : "Combo"
-                        : item.brand}
+                        : item.style}
                     </p>
                   </div>
                 </div>
